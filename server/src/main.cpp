@@ -1,5 +1,7 @@
+#include <spdlog/spdlog.h>
 #include <iostream>
 
+#include "actorspawner.h"
 #include "game.h"
 
 struct Position {
@@ -8,21 +10,19 @@ struct Position {
 };
 
 int main() {
-    // entt::registry registry;
-
-    // const auto entity1 = registry.create();
-    // const auto entity2 = registry.create();
-    // registry.emplace<Position>(entity1, 1.0f, 2.0f);
-    // registry.emplace<Position>(entity2, 3.0f, 5.1f);
-
-    // auto view = registry.view<Position>();
-    // for (auto [entity, position] : view.each()) {
-    //     std::cout << "Entity " << int(entity) << " Position: (" << position.x
-    //               << ", " << position.y << ")\n";
-    // }
+    entt::registry registry;
+    entt::dispatcher dispatcher;
 
     SpaceRogueLite::Game game;
-    game.run();
+    SpaceRogueLite::ActorSpawner spawner(registry, dispatcher);
+    SpaceRogueLite::ActorSystem actorSystem(registry, dispatcher);
+
+    auto player = spawner.spawnActor("Player");
+    auto enemy = spawner.spawnActor("Enemy");
+
+    actorSystem.applyDamage(enemy, 50);
+    actorSystem.applyDamage(enemy, 60);  // This should trigger despawn
+    // game.run();
 
     // std::cout << "test" << std::endl;
 
