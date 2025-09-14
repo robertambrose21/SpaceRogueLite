@@ -1,0 +1,41 @@
+build/
+build-*/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Conan generated files
+**/conan_toolchain.cmake
+**/conanbuildinfo.cmake
+**/conanbuild.sh
+**/conanbuild.bat
+**/conanrun*.sh
+**/conanrun*.bat
+**/conanbuildenv-*
+**/deactivate_conan*
+**/generators/
+**/CMakeDeps/
+
+# User-specific IDE/project files
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Binaries / executables
+bin/
+*.exe
+*.out
+*.app
+*.so
+*.dll
+*.dylib
+
+# Temporary files
+*.log
+*.tmp
+*.swp
