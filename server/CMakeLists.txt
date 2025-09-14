@@ -3,11 +3,11 @@ project(server CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(EnTT REQUIRED)
+find_package(core REQUIRED)
 
 add_executable(server src/main.cpp)
 
-target_link_libraries(server PRIVATE EnTT::EnTT)
+target_link_libraries(server PRIVATE core::core)
 
 install(TARGETS server DESTINATION "."
         RUNTIME DESTINATION bin

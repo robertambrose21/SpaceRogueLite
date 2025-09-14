@@ -1,31 +1,40 @@
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout, CMakeDeps
-from pathlib import Path
 
 
-class pkgRecipe(ConanFile):
-    name = "server"
+class coreRecipe(ConanFile):
+    name = "core"
     version = "1.0.0-prealpha"
-    package_type = "application"
+    package_type = "library"
 
     # Optional metadata
     license = "<Put the package license here>"
     author = "robertambrose21@gmail.com"
     url = "https://github.com/robertambrose21/SpaceRogueLite"
-    description = "SpaceRogueLite server application"
+    description = "SpaceRogueLite core library"
 
     # Binary configuration
     settings = "os", "compiler", "build_type", "arch"
+    options = {"shared": [True, False], "fPIC": [True, False]}
+    default_options = {"shared": False, "fPIC": True}
 
     # Sources are located in the same place as this recipe, copy them to the recipe
-    exports_sources = "CMakeLists.txt", "src/*", "../scripts/merge_compile_commands.py"
+    exports_sources = "CMakeLists.txt", "src/*", "include/*"
 
     def requirements(self):
-        self.requires("core/1.0.0-prealpha")
+        self.requires("entt/3.15.0", transitive_headers=True)
+
+    def config_options(self):
+        if self.settings.os == "Windows":
+            self.options.rm_safe("fPIC")
+
+    def configure(self):
+        if self.options.shared:
+            self.options.rm_safe("fPIC")
 
     def layout(self):
         cmake_layout(self)
-
+    
     def generate(self):
         deps = CMakeDeps(self)
         deps.generate()
@@ -37,19 +46,10 @@ class pkgRecipe(ConanFile):
         cmake.configure()
         cmake.build()
 
-        workspace_root = Path(self.source_folder).parent.resolve()
-        script_path = workspace_root / "scripts" / "merge_compile_commands.py"
-        output_path = workspace_root / "compile_commands.json"
-
-        if script_path.exists():
-            self.run(f'python "{script_path}" --root "{workspace_root}" --output "{output_path}"', env=None)
-        else:
-            self.output.warning(f"Merge script not found at {script_path}")
-
     def package(self):
         cmake = CMake(self)
         cmake.install()
 
-    
+    def package_info(self):
+        self.cpp_info.libs = ["core"]
 
-    
