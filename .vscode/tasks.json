@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build All (Debug)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/build_all.sh",
+      "args": ["--build-type", "Debug"],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build All (Release)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/build_all.sh",
+      "args": ["--build-type", "Release"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
