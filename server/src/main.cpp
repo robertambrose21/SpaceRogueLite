@@ -1,4 +1,5 @@
 #include <spdlog/spdlog.h>
+#include <yojimbo.h>
 #include <iostream>
 
 #include "actorspawner.h"
@@ -10,6 +11,13 @@ struct Position {
 };
 
 int main() {
+    if (!InitializeYojimbo()) {
+        spdlog::error("Failed to initialize Yojimbo!");
+        return 1;
+    }
+
+    spdlog::info("Yojimbo initialized successfully.");
+
     entt::registry registry;
     entt::dispatcher dispatcher;
 
@@ -25,6 +33,8 @@ int main() {
     // game.run();
 
     // std::cout << "test" << std::endl;
+
+    ShutdownYojimbo();
 
     return 0;
 }

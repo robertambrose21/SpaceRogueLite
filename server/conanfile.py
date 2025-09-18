@@ -22,6 +22,7 @@ class pkgRecipe(ConanFile):
 
     def requirements(self):
         self.requires("core/1.0.0-prealpha")
+        self.requires("yojimbo/v1.2.5")
 
     def layout(self):
         cmake_layout(self)
