@@ -23,6 +23,7 @@ done
 PROJECTS=(
   "../core"
   "../net"
+  "../client"
   "../server"
 )
 

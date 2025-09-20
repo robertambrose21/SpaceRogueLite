@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build All (Debug)",
+      "label": "Build Packages (Debug)",
       "type": "shell",
-      "command": "${workspaceFolder}/scripts/build_all.sh",
+      "command": "${workspaceFolder}/scripts/build_packages.sh",
       "args": ["--build-type", "Debug"],
       "group": {
         "kind": "build",
@@ -13,9 +13,9 @@
       "problemMatcher": []
     },
     {
-      "label": "Build All (Release)",
+      "label": "Build Packages (Release)",
       "type": "shell",
-      "command": "${workspaceFolder}/scripts/build_all.sh",
+      "command": "${workspaceFolder}/scripts/build_packages.sh",
       "args": ["--build-type", "Release"],
       "group": {
         "kind": "build",
