@@ -4,6 +4,7 @@
 
 #include "actorspawner.h"
 #include "game.h"
+#include "net/server.h"
 
 struct Position {
     float x;
@@ -11,6 +12,8 @@ struct Position {
 };
 
 int main() {
+    yojimbo_log_level(YOJIMBO_LOG_LEVEL_DEBUG);
+
     if (!InitializeYojimbo()) {
         spdlog::error("Failed to initialize Yojimbo!");
         return 1;
@@ -22,6 +25,10 @@ int main() {
     entt::dispatcher dispatcher;
 
     SpaceRogueLite::Game game;
+
+    SpaceRogueLite::Server server(yojimbo::Address("127.0.0.1", 8081), 64);
+    server.start();
+
     SpaceRogueLite::ActorSpawner spawner(registry, dispatcher);
     SpaceRogueLite::ActorSystem actorSystem(registry, dispatcher);
 
@@ -33,6 +40,8 @@ int main() {
     // game.run();
 
     // std::cout << "test" << std::endl;
+
+    server.stop();
 
     ShutdownYojimbo();
 
