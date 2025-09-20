@@ -1,0 +1,13 @@
+diff --git a/reliable/reliable.c b/reliable/reliable.c
+index 1c164db..4a6ab04 100644
+--- a/reliable/reliable.c
++++ b/reliable/reliable.c
+@@ -2400,7 +2400,7 @@ void test_sequence_buffer_rollover()
+     int i;
+     for (i = 0; i <= 32767; ++i)
+     {
+-        uint8_t packet_data[16];
++        uint8_t packet_data[16] = {0};
+         int packet_bytes = sizeof( packet_data ) / sizeof( uint8_t );
+         reliable_endpoint_next_packet_sequence( context.sender );
+         reliable_endpoint_send_packet( context.sender, packet_data, packet_bytes );
