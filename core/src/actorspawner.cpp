@@ -5,11 +5,8 @@
 
 using namespace SpaceRogueLite;
 
-ActorSpawner::ActorSpawner(entt::registry &registry,
-                           entt::dispatcher &dispatcher)
-    : registry(registry),
-      dispatcher(dispatcher),
-      dispatchListener(*this, dispatcher) {}
+ActorSpawner::ActorSpawner(entt::registry &registry, entt::dispatcher &dispatcher)
+    : registry(registry), dispatcher(dispatcher), dispatchListener(*this, dispatcher) {}
 
 entt::entity ActorSpawner::spawnActor(const std::string &name) {
     static uint32_t nextId = 1;
@@ -21,8 +18,7 @@ entt::entity ActorSpawner::spawnActor(const std::string &name) {
     registry.emplace<Position>(entity, 0, 0);
     registry.emplace<ExternalId>(entity, nextId++);
 
-    spdlog::info("Spawned actor '{}' with entity ID {} and external ID {}",
-                 name, int(entity), nextId - 1);
+    spdlog::info("Spawned actor '{}' with entity ID {} and external ID {}", name, int(entity), nextId - 1);
 
     return entity;
 }
@@ -43,8 +39,7 @@ void ActorSystem::applyDamage(entt::entity entity, int damage) {
     if (auto *health = registry.try_get<Health>(entity)) {
         health->current -= damage;
 
-        spdlog::info("Entity ID {} took {} damage, current health: {}",
-                     int(entity), damage, health->current);
+        spdlog::info("Entity ID {} took {} damage, current health: {}", int(entity), damage, health->current);
 
         if (health->current <= 0) {
             dispatcher.trigger<ActorDespawnEvent>({entity});
