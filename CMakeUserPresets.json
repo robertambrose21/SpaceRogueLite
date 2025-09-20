@@ -1,7 +1,10 @@
 {
-  "version": 4,
-  "vendor": {
-    "conan": {}
-  },
-  "include": ["server/CMakeUserPresets.json"]
+    "version": 4,
+    "vendor": {
+        "conan": {}
+    },
+    "include": [
+        "build/debug/CMakePresets.json",
+        "build/release/CMakePresets.json"
+    ]
 }
