@@ -22,7 +22,6 @@ done
 # List of project directories to build
 PROJECTS=(
   "../core"
-  "../net"
   "../client"
   "../server"
 )
