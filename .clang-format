@@ -1,7 +1,7 @@
 BasedOnStyle: Google
 IndentWidth: 4
 AccessModifierOffset: -4
-ColumnLimit: 80
+ColumnLimit: 120
 
 BinPackParameters: true
 BinPackArguments: true
