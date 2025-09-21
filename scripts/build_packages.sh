@@ -19,12 +19,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# List of project directories to build
 PROJECTS=(
   "../core"
   "../client"
   "../server"
 )
+
 
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
