@@ -38,6 +38,8 @@ public:
     void start(void);
     void stop(void);
 
+    void update(int64_t timeSinceLastFrame);
+
     void onClientConnected(int clientIndex);
     void onClientDisconnected(int clientIndex);
 
@@ -52,6 +54,9 @@ private:
 
     int maxConnections;
     std::map<uint64_t, ConnectionState> clientIds;
+
+    void processMessages(void);
+    void processMessage(int clientIndex, yojimbo::Message* message);
 };
 
 };  // namespace SpaceRogueLite
