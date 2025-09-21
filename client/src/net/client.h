@@ -29,6 +29,8 @@ public:
     void connect(void);
     void disconnect(void);
 
+    void update(int64_t timeSinceLastFrame);
+
     uint64_t getClientId(void) const;
 
 private:
@@ -40,6 +42,9 @@ private:
     ClientAdapter adapter;
 
     ConnectionConfig connectionConfig;
+
+    void processMessages(void);
+    void processMessage(yojimbo::Message* message);
 };
 
 }  // namespace SpaceRogueLite
