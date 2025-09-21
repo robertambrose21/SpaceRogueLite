@@ -5,6 +5,7 @@
 #include <iostream>
 #include <map>
 
+#include "connectionconfig.h"
 #include "messagefactory.h"
 
 namespace SpaceRogueLite {
@@ -12,16 +13,6 @@ namespace SpaceRogueLite {
 static const uint8_t DEFAULT_PRIVATE_KEY[yojimbo::KeyBytes] = {0};
 
 static const int MAX_PLAYERS = 64;
-
-enum class MessageChannel { RELIABLE, UNRELIABLE, COUNT };
-
-struct ConnectionConfig2 : yojimbo::ClientServerConfig {
-    ConnectionConfig2() {
-        numChannels = 2;
-        channel[(int)MessageChannel::RELIABLE].type = yojimbo::CHANNEL_TYPE_RELIABLE_ORDERED;
-        channel[(int)MessageChannel::UNRELIABLE].type = yojimbo::CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    }
-};
 
 class Server;
 
@@ -57,7 +48,7 @@ private:
     yojimbo::Address address;
 
     Adapter adapter;
-    ConnectionConfig2 connectionConfig;
+    ConnectionConfig connectionConfig;
 
     int maxConnections;
     std::map<uint64_t, ConnectionState> clientIds;
