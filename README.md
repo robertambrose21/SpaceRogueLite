@@ -8,4 +8,7 @@ scripts/build_packages.sh --build-type=[Debug|Release] # These can also be run a
 scripts/build.sh
 ```
 
-**Note:** When a new header-only package is added, it's directory should be added to the `HEADER_PROJECTS` list in `install.sh` to allow the install script to continue to function correctly
+**Notes:**
+
+- VSCode may need to be restarted after performing a clean install
+- When a new header-only package is added, it's directory should be added to the `HEADER_PROJECTS` list in `install.sh` to allow the install script to continue to function correctly
