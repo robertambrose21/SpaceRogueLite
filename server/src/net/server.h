@@ -10,16 +10,16 @@
 
 namespace SpaceRogueLite {
 
-static const uint8_t DEFAULT_PRIVATE_KEY[yojimbo::KeyBytes] = {0};
+static const uint8_t SERVER_DEFAULT_PRIVATE_KEY[yojimbo::KeyBytes] = {0};
 
 static const int MAX_PLAYERS = 64;
 
 class Server;
 
-class Adapter : public yojimbo::Adapter {
+class ServerAdapter : public yojimbo::Adapter {
 public:
-    explicit Adapter(Server* server = NULL);
-    ~Adapter() {};
+    explicit ServerAdapter(Server* server = NULL);
+    ~ServerAdapter() = default;
 
     yojimbo::MessageFactory* CreateMessageFactory(yojimbo::Allocator& allocator) override;
 
@@ -47,7 +47,7 @@ private:
     yojimbo::Server server;
     yojimbo::Address address;
 
-    Adapter adapter;
+    ServerAdapter adapter;
     ConnectionConfig connectionConfig;
 
     int maxConnections;

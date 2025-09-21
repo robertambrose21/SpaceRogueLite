@@ -5,7 +5,7 @@ using namespace SpaceRogueLite;
 Server::Server(const yojimbo::Address& address, int maxConnections)
     : adapter(this),
       address(address),
-      server(yojimbo::GetDefaultAllocator(), DEFAULT_PRIVATE_KEY, address, yojimbo::ClientServerConfig(), adapter, 0.0),
+      server(yojimbo::GetDefaultAllocator(), SERVER_DEFAULT_PRIVATE_KEY, address, ConnectionConfig(), adapter, 0.0),
       maxConnections(maxConnections) {}
 
 Server::~Server() {
@@ -54,13 +54,13 @@ void Server::onClientDisconnected(int clientIndex) {
     spdlog::info("Client {}:[{}] disconnected", clientIndex, clientId);
 }
 
-Adapter::Adapter(Server* server) : server(server) {}
+ServerAdapter::ServerAdapter(Server* server) : server(server) {}
 
-yojimbo::MessageFactory* Adapter::CreateMessageFactory(yojimbo::Allocator& allocator) {
+yojimbo::MessageFactory* ServerAdapter::CreateMessageFactory(yojimbo::Allocator& allocator) {
     return YOJIMBO_NEW(allocator, GameMessageFactory, allocator);
 }
 
-void Adapter::OnServerClientConnected(int clientIndex) {
+void ServerAdapter::OnServerClientConnected(int clientIndex) {
     if (server == nullptr) {
         return;
     }
@@ -68,7 +68,7 @@ void Adapter::OnServerClientConnected(int clientIndex) {
     server->onClientConnected(clientIndex);
 }
 
-void Adapter::OnServerClientDisconnected(int clientIndex) {
+void ServerAdapter::OnServerClientDisconnected(int clientIndex) {
     if (server == nullptr) {
         return;
     }
