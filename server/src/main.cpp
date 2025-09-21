@@ -12,7 +12,7 @@ struct Position {
 };
 
 int main() {
-    yojimbo_log_level(YOJIMBO_LOG_LEVEL_DEBUG);
+    // yojimbo_log_level(YOJIMBO_LOG_LEVEL_DEBUG);
 
     if (!InitializeYojimbo()) {
         spdlog::error("Failed to initialize Yojimbo!");
@@ -25,8 +25,11 @@ int main() {
     entt::dispatcher dispatcher;
 
     SpaceRogueLite::Game game;
-
     SpaceRogueLite::Server server(yojimbo::Address("127.0.0.1", 8081), 64);
+
+    game.attachWorker({1, "ServerUpdateLoop",
+                       [&server](int64_t timeSinceLastFrame, bool& quit) { server.update(timeSinceLastFrame); }});
+
     server.start();
 
     SpaceRogueLite::ActorSpawner spawner(registry, dispatcher);
@@ -37,7 +40,7 @@ int main() {
 
     actorSystem.applyDamage(enemy, 50);
     actorSystem.applyDamage(enemy, 60);  // This should trigger despawn
-    // game.run();
+    game.run();
 
     // std::cout << "test" << std::endl;
 
