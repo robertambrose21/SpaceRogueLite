@@ -23,7 +23,7 @@ void Server::start(void) {
 
     char buffer[256];
     server.GetAddress().ToString(buffer, sizeof(buffer));
-    spdlog::info("Server address is {}", buffer);
+    spdlog::info("Starting server at {}", buffer);
 }
 
 void Server::stop(void) {
@@ -32,6 +32,7 @@ void Server::stop(void) {
         return;
     }
 
+    spdlog::info("Stopping server");
     server.Stop();
 }
 
