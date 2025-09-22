@@ -8,10 +8,10 @@ scripts/build_packages.sh --build-type=[Debug|Release] # These can also be run a
 scripts/build.sh
 ```
 
-**Notes:**
+## Header Packages
 
-- VSCode may need to be restarted after performing a clean install
-- When a new header-only package is added, it's directory should be added to the `HEADER_PROJECTS` list in `install.sh` to allow the install script to continue to function correctly
+- When a new header-only package is added, it's directory should be added to the `HEADER_PROJECTS` list in `install.sh` to allow the install script to continue to function correctly.
+- It will also require a `dummy.cpp` in the root directory with a list of all headers intended to be exported and an appropriate `CMakeLists.txt` to supplement it. See the `net` package for an example.
 
 ## Intellisense
 
@@ -31,3 +31,4 @@ The `settings.json` file under `.vscode` performs the majority of the intellisen
 #### Troubleshooting
 
 - Try running `C/C++: Reset Intellisense Database` and restarting VSCode if intellisense does not work on first try
+- If header files cannot see `yojimbo` or other third-party libraries, try opening the `dummy.cpp` file and navigating to the problematic header file from there. It seems to fix VSCodes confusion
