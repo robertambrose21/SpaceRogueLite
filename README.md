@@ -28,23 +28,6 @@ The `settings.json` file under `.vscode` performs the majority of the intellisen
   "cmake.buildDirectory": "${workspaceFolder}/build/release",
 ```
 
-#### c_cpp_properties.json
+#### Troubleshooting
 
-The `c_cpp_properties.json` is useful for header only libraries which do not produce a `compile_commands.json`. These should include configuration for any third party libraries alongside the workspace root, e.g.:
-
-```JSON
-"includePath": [
-  "${workspaceFolder}/**",
-  "<home-directory>/.conan2/p/b/<yojimbo-include-directory>/p/include"
-],
-```
-
-Additionally, header only libraries should be added to the `browse` configuration so they can be properly detected by other packages. e.g.:
-
-```JSON
-"browse": {
-    "path": ["${workspaceFolder}/net/include"],
-    "limitSymbolsToIncludedHeaders": true,
-    "databaseFilename": ""
-}
-```
+- Try running `C/C++: Reset Intellisense Database` and restarting VSCode if intellisense does not work on first try
