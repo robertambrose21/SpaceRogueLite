@@ -7,3 +7,4 @@ BinPackParameters: true
 BinPackArguments: true
 
 IncludeBlocks: Preserve
+SpaceAfterCStyleCast: true
