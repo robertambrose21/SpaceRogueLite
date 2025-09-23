@@ -6,6 +6,7 @@
 #include <map>
 
 #include "connectionconfig.h"
+#include "message.h"
 #include "messagefactory.h"
 
 namespace SpaceRogueLite {
@@ -38,6 +39,11 @@ public:
     void start(void);
     void stop(void);
 
+    Message* tester(int& blah);
+
+    Message* createMessage(int clientIndex, const MessageType& messageType);
+    void sendMessage(int clientIndex, Message* message);
+
     void update(int64_t timeSinceLastFrame);
 
     void onClientConnected(int clientIndex);
@@ -56,7 +62,7 @@ private:
     std::map<uint64_t, ConnectionState> clientIds;
 
     void processMessages(void);
-    void processMessage(int clientIndex, yojimbo::Message* message);
+    void processMessage(int clientIndex, MessageChannel channel, Message* message);
 };
 
 };  // namespace SpaceRogueLite

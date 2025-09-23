@@ -31,8 +31,18 @@ void Client::disconnect(void) {
     client.Disconnect();
 }
 
+Message* Client::createMessage(const MessageType& messageType) {
+    return dynamic_cast<Message*>(client.CreateMessage(static_cast<int>(messageType)));
+}
+
+void Client::sendMessage(Message* message) {
+    spdlog::debug("Sending '{}' message to server on channel {}", message->getName(),
+                  MessageChannelToString(message->getMessageChannel()));
+    client.SendMessage(static_cast<int>(message->getMessageChannel()), message);
+}
+
 void Client::update(int64_t timeSinceLastFrame) {
-    client.AdvanceTime(client.GetTime() + ((double)timeSinceLastFrame) / 1000.0f);
+    client.AdvanceTime(client.GetTime() + ((double) timeSinceLastFrame) / 1000.0f);
     client.ReceivePackets();
 
     if (client.IsConnected()) {
@@ -40,7 +50,8 @@ void Client::update(int64_t timeSinceLastFrame) {
     }
 
     // TODO: See message in gameserver.cpp
-    if (client.HasMessagesToSend((int)MessageChannel::RELIABLE)) {
+    if (client.HasMessagesToSend((int) MessageChannel::RELIABLE) ||
+        client.HasMessagesToSend((int) MessageChannel::UNRELIABLE)) {
         client.SendPackets();
     }
 }

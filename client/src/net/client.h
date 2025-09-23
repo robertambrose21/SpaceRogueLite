@@ -29,6 +29,9 @@ public:
     void connect(void);
     void disconnect(void);
 
+    Message* createMessage(const MessageType& messageType);
+    void sendMessage(Message* message);
+
     void update(int64_t timeSinceLastFrame);
 
     uint64_t getClientId(void) const;

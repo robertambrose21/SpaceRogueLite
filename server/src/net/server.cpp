@@ -39,8 +39,16 @@ void Server::stop(void) {
     server.Stop();
 }
 
+Message* Server::createMessage(int clientIndex, const MessageType& messageType) {
+    return dynamic_cast<Message*>(server.CreateMessage(clientIndex, static_cast<int>(messageType)));
+}
+
+void Server::sendMessage(int clientIndex, Message* message) {
+    server.SendMessage(clientIndex, static_cast<int>(message->getMessageChannel()), message);
+}
+
 void Server::update(int64_t timeSinceLastFrame) {
-    server.AdvanceTime(server.GetTime() + ((double)timeSinceLastFrame) / 1000.0f);
+    server.AdvanceTime(server.GetTime() + ((double) timeSinceLastFrame) / 1000.0f);
     server.ReceivePackets();
 
     processMessages();
@@ -48,7 +56,8 @@ void Server::update(int64_t timeSinceLastFrame) {
     // TODO: Send a ping every second or so: https://github.com/networkprotocol/yojimbo/issues/138 and
     // https://github.com/networkprotocol/yojimbo/issues/146 Packets are intended to be sent pretty regulary - we can
     // remove this when we're sending packets more regularly
-    if (server.HasMessagesToSend(0, (int)MessageChannel::RELIABLE)) {
+    if (server.HasMessagesToSend(0, (int) MessageChannel::RELIABLE) ||
+        server.HasMessagesToSend(0, (int) MessageChannel::UNRELIABLE)) {
         server.SendPackets();
     }
 }
@@ -60,18 +69,26 @@ void Server::processMessages(void) {
         }
 
         for (int j = 0; j < connectionConfig.numChannels; j++) {
-            yojimbo::Message* message = server.ReceiveMessage(i, j);
-            while (message != NULL) {
-                processMessage(i, message);
-                server.ReleaseMessage(i, message);
-                message = server.ReceiveMessage(i, j);
+            yojimbo::Message* yojimboMessage = server.ReceiveMessage(i, j);
+            while (yojimboMessage != NULL) {
+                auto message = dynamic_cast<Message*>(yojimboMessage);
+                if (!message) {
+                    spdlog::critical("Invalid dynamic_cast for yojimbo::Message, type is: '{}'. Check message factory",
+                                     yojimboMessage->GetType());
+                    continue;
+                }
+
+                processMessage(i, static_cast<MessageChannel>(j), message);
+                server.ReleaseMessage(i, yojimboMessage);
+                yojimboMessage = server.ReceiveMessage(i, j);
             }
         }
     }
 }
 
-void Server::processMessage(int clientIndex, yojimbo::Message* message) {
-    spdlog::info("Received message of type {} from client {}", message->GetType(), clientIndex);
+void Server::processMessage(int clientIndex, MessageChannel channel, Message* message) {
+    spdlog::debug("Received '{}' message from client {} on channel {}", message->getName(), clientIndex,
+                  MessageChannelToString(channel));
 }
 
 void Server::onClientConnected(int clientIndex) {
