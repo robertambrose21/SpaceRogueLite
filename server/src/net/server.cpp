@@ -1,17 +1,16 @@
 #include "server.h"
-#include "actorspawner.h"
 
 using namespace SpaceRogueLite;
 
 // ---------------------------------------------------------------
 // -- SERVER -----------------------------------------------------
 // ---------------------------------------------------------------
-Server::Server(const yojimbo::Address& address, int maxConnections, entt::dispatcher& dispatcher)
+Server::Server(const yojimbo::Address& address, int maxConnections, MessageHandler& messageHandler)
     : adapter(this),
       address(address),
       server(yojimbo::GetDefaultAllocator(), SERVER_DEFAULT_PRIVATE_KEY, address, ConnectionConfig(), adapter, 0.0),
       maxConnections(maxConnections),
-      dispatcher(dispatcher) {}
+      messageHandler(messageHandler) {}
 
 Server::~Server() {
     if (server.IsRunning()) {
@@ -89,32 +88,7 @@ void Server::processMessages(void) {
 }
 
 void Server::processMessage(int clientIndex, MessageChannel channel, Message* message) {
-    spdlog::debug("Received '{}' message from client {} on channel {}", message->getName(), clientIndex,
-                  MessageChannelToString(channel));
-
-    // Dispatch based on message type
-    switch (message->GetType()) {
-        case (int) MessageType::PING:
-            // Handle ping - currently just logged
-            break;
-
-        case (int) MessageType::SPAWN_ACTOR: {
-            auto* spawnMessage = static_cast<SpawnActorMessage*>(message);
-            handleSpawnActorMessage(clientIndex, spawnMessage);
-            break;
-        }
-
-        default:
-            spdlog::warn("Unknown message type: {}", message->GetType());
-            break;
-    }
-}
-
-void Server::handleSpawnActorMessage(int clientIndex, SpawnActorMessage* message) {
-    spdlog::info("Client {} requested spawn of actor '{}'", clientIndex, message->actorName);
-
-    // Trigger the actor spawn event
-    dispatcher.trigger<ActorSpawnEvent>({std::string(message->actorName)});
+    messageHandler.processMessage(clientIndex, channel, message);
 }
 
 void Server::onClientConnected(int clientIndex) {
