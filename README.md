@@ -8,6 +8,16 @@ scripts/build_packages.sh --build-type=[Debug|Release] # These can also be run a
 scripts/build.sh
 ```
 
+## Development
+
+If you don't want to have to run the `install.sh` script a lot, you should add the various sub-packages as editable (see https://docs.conan.io/2/tutorial/developing_packages/editable_packages.html):
+
+```bash
+conan editable add core
+conan editable add net
+conan editable add ...
+```
+
 ## Header Packages
 
 - When a new header-only package is added, it's directory should be added to the `HEADER_PROJECTS` list in `install.sh` to allow the install script to continue to function correctly.
