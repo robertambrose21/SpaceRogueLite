@@ -18,6 +18,8 @@ conan editable add net
 conan editable add ...
 ```
 
+**Note**: You will need to run `install.sh --clean [Debug|Release]` _after_ marking editable packages to prevent conan from picking up packages in your cache
+
 ## Header Packages
 
 - When a new header-only package is added, it's directory should be added to the `HEADER_PROJECTS` list in `install.sh` to allow the install script to continue to function correctly.
