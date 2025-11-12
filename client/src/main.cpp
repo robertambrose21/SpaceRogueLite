@@ -1,8 +1,10 @@
 #include <spdlog/spdlog.h>
 #include <yojimbo.h>
+#include <cstring>
 
 #include "game.h"
 #include "message.h"
+#include "messagefactory.h"
 #include "net/client.h"
 
 int main() {
@@ -42,6 +44,12 @@ int main() {
     game.attachWorker({2, "PingTest", workerFunc});
 
     client.connect();
+
+    // Send a test spawn message
+    auto spawnMessage = client.createMessage(SpaceRogueLite::MessageType::SPAWN_ACTOR);
+    auto* spawnActorMessage = static_cast<SpaceRogueLite::SpawnActorMessage*>(spawnMessage);
+    strcpy(spawnActorMessage->actorName, "Enemy2");
+    client.sendMessage(spawnMessage);
 
     game.run();
 

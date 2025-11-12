@@ -28,7 +28,7 @@ int main() {
     entt::dispatcher dispatcher;
 
     SpaceRogueLite::Game game;
-    SpaceRogueLite::Server server(yojimbo::Address("127.0.0.1", 8081), 64);
+    SpaceRogueLite::Server server(yojimbo::Address("127.0.0.1", 8081), 64, dispatcher);
 
     game.attachWorker({1, "ServerUpdateLoop",
                        [&server](int64_t timeSinceLastFrame, bool& quit) { server.update(timeSinceLastFrame); }});
