@@ -7,7 +7,21 @@
 
 namespace SpaceRogueLite {
 
-enum class MessageType { PING, SPAWN_ACTOR, COUNT };
+// ============================================================================
+// MESSAGE REGISTRY - Single source of truth for all message types
+// ============================================================================
+// Add new messages here
+// Format: X(ENUM_NAME, MessageClass)
+#define MESSAGE_LIST(X)  \
+    X(PING, PingMessage) \
+    X(SPAWN_ACTOR, SpawnActorMessage)
+
+enum class MessageType {
+#define MESSAGE_ENUM(name, messageClass) name,
+    MESSAGE_LIST(MESSAGE_ENUM)
+#undef MESSAGE_ENUM
+        COUNT
+};
 
 class PingMessage : public Message {
 public:
@@ -41,8 +55,10 @@ public:
 };
 
 YOJIMBO_MESSAGE_FACTORY_START(GameMessageFactory, (int) MessageType::COUNT);
-YOJIMBO_DECLARE_MESSAGE_TYPE((int) MessageType::PING, PingMessage);
-YOJIMBO_DECLARE_MESSAGE_TYPE((int) MessageType::SPAWN_ACTOR, SpawnActorMessage);
+#define MESSAGE_FACTORY_REGISTER(name, messageClass) \
+    YOJIMBO_DECLARE_MESSAGE_TYPE((int) MessageType::name, messageClass);
+MESSAGE_LIST(MESSAGE_FACTORY_REGISTER)
+#undef MESSAGE_FACTORY_REGISTER
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 }  // namespace SpaceRogueLite

@@ -93,13 +93,19 @@ constexpr HandlerFunc makeHandler() {
  * Initializes the handler registry with all message handlers
  *
  * This constexpr function is evaluated at compile time to create the registry.
+ * Uses MESSAGE_LIST from messagefactory.h to automatically register all message types.
  *
  * @return Initialized HandlerRegistry
  */
 constexpr HandlerRegistry initializeHandlerRegistry() {
     HandlerRegistry registry;
-    registry.registerHandler(MessageType::PING, makeHandler<PingMessage>());
-    registry.registerHandler(MessageType::SPAWN_ACTOR, makeHandler<SpawnActorMessage>());
+
+    // Generate handler registrations from MESSAGE_LIST
+#define MESSAGE_HANDLER_REGISTER(name, messageClass) \
+    registry.registerHandler(MessageType::name, makeHandler<messageClass>());
+    MESSAGE_LIST(MESSAGE_HANDLER_REGISTER)
+#undef MESSAGE_HANDLER_REGISTER
+
     return registry;
 }
 
