@@ -9,6 +9,7 @@
 #include "messagefactory.h"
 #include "net/client.h"
 #include "net/clientmessagehandler.h"
+#include "net/clientmessagetransmitter.h"
 
 int main() {
 #if !defined(NDEBUG)
@@ -31,6 +32,7 @@ int main() {
 
     SpaceRogueLite::Game game;
     SpaceRogueLite::Client client(1, yojimbo::Address("127.0.0.1", 8081), messageHandler);
+    SpaceRogueLite::ClientMessageTransmitter messageTransmitter(client);
 
     game.attachWorker({1, "ClientUpdateLoop",
                        [&client](int64_t timeSinceLastFrame, bool& quit) { client.update(timeSinceLastFrame); }});
@@ -55,10 +57,7 @@ int main() {
     client.connect();
 
     // Send a test spawn message
-    auto spawnMessage = client.createMessage(SpaceRogueLite::MessageType::SPAWN_ACTOR);
-    auto* spawnActorMessage = static_cast<SpaceRogueLite::SpawnActorMessage*>(spawnMessage);
-    spawnActorMessage->parseFromCommand({"Enemy2"});
-    client.sendMessage(spawnMessage);
+    messageTransmitter.sendMessage(SpaceRogueLite::MessageType::SPAWN_ACTOR, "Enemy5", "blah");
 
     game.run();
 

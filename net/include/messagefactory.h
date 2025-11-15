@@ -29,7 +29,8 @@ public:
 
     std::string toString(void) const { return getName(); }
 
-    void parseFromCommand(const std::vector<std::string>& args) {}
+    void parse() {}
+
     std::string getCommandHelpText(void) const { return "Usage: Sends a ping message to the server."; }
 
     template <typename Stream>
@@ -48,22 +49,26 @@ public:
 
     std::string toString(void) const { return getName() + ": " + actorName; }
 
-    void parseFromCommand(const std::vector<std::string>& args) {
-        if (args.size() != 1) {
-            spdlog::warn("SpawnActor command requires exactly 1 argument: actorName");
+    void parse(const char* name) {
+        if (name == nullptr) {
+            spdlog::warn("SpawnActor parse received null actor name");
             return;
         }
 
-        if (args[0].length() >= sizeof(actorName)) {
+        size_t nameLen = strlen(name);
+        if (nameLen >= sizeof(actorName)) {
             spdlog::warn("Actor name too long, must be less than {}", sizeof(actorName) - 1);
             return;
         }
 
-        if (strlcpy(actorName, args[0].c_str(), sizeof(actorName)) > sizeof(actorName)) {
+        if (strlcpy(actorName, name, sizeof(actorName)) > sizeof(actorName)) {
             spdlog::critical("Buffer overflow in actorName");
             return;
         }
     }
+
+    void parse(const std::string& name) { parse(name.c_str()); }
+
     std::string getCommandHelpText(void) const { return "Usage: Sends a ping message to the server."; }
 
     template <typename Stream>
