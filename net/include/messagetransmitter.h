@@ -30,8 +30,8 @@ public:
 
         // Cast to correct message type and call parse with proper type information
         switch (type) {
-#define PARSE_MESSAGE(name, messageClass)                                        \
-    case MessageType::name:                                                      \
+#define PARSE_MESSAGE(name, messageClass)                                              \
+    case MessageType::name:                                                            \
         parseAndSend<messageClass>(message, clientIndex, std::forward<Args>(args)...); \
         return;
             MESSAGE_LIST(PARSE_MESSAGE)
@@ -61,16 +61,16 @@ private:
     // Helper template to parse message with correct type
     template <typename MessageClass, typename... Args>
     void parseAndSend(Message* message, int clientIndex, Args&&... args) {
-        auto* typedMsg = static_cast<MessageClass*>(message);
+        auto* typedMessage = static_cast<MessageClass*>(message);
 
         // Only call parse if it's valid for these argument types
-        if constexpr (requires { typedMsg->parse(std::forward<Args>(args)...); }) {
-            typedMsg->parse(std::forward<Args>(args)...);
+        if constexpr (requires { typedMessage->parse(std::forward<Args>(args)...); }) {
+            typedMessage->parse(std::forward<Args>(args)...);
         } else {
             spdlog::critical(
                 "Message '{}' does not have a parse() overload for {} argument(s) of the provided types. "
                 "Not sending message.",
-                typedMsg->getName(), sizeof...(args));
+                typedMessage->getName(), sizeof...(args));
             return;
         }
 
