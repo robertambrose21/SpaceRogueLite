@@ -51,18 +51,4 @@ private:
     MessageChannel channel;
 };
 
-class MessageCommand {
-public:
-    explicit MessageCommand(Message* message, const std::string& command,
-                            const std::map<std::string, std::string>& args)
-        : command(command), args(args) {}
-
-    std::string getCommand() const { return command; }
-    const std::map<std::string, std::string>& getArgs() const { return args; }
-
-private:
-    std::string command;
-    std::map<std::string, std::string> args;
-};
-
 }  // namespace SpaceRogueLite
