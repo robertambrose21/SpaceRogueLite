@@ -57,7 +57,7 @@ int main() {
     // Send a test spawn message
     auto spawnMessage = client.createMessage(SpaceRogueLite::MessageType::SPAWN_ACTOR);
     auto* spawnActorMessage = static_cast<SpaceRogueLite::SpawnActorMessage*>(spawnMessage);
-    strcpy(spawnActorMessage->actorName, "Enemy2");
+    spawnActorMessage->parseFromCommand({"Enemy2"});
     client.sendMessage(spawnMessage);
 
     game.run();

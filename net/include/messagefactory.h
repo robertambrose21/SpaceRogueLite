@@ -29,6 +29,9 @@ public:
 
     std::string toString(void) const { return getName(); }
 
+    void parseFromCommand(const std::vector<std::string>& args) {}
+    std::string getCommandHelpText(void) const { return "Usage: Sends a ping message to the server."; }
+
     template <typename Stream>
     bool Serialize(Stream& stream) {
         return true;
@@ -44,6 +47,24 @@ public:
     char actorName[256];
 
     std::string toString(void) const { return getName() + ": " + actorName; }
+
+    void parseFromCommand(const std::vector<std::string>& args) {
+        if (args.size() != 1) {
+            spdlog::warn("SpawnActor command requires exactly 1 argument: actorName");
+            return;
+        }
+
+        if (args[0].length() >= sizeof(actorName)) {
+            spdlog::warn("Actor name too long, must be less than {}", sizeof(actorName) - 1);
+            return;
+        }
+
+        if (strlcpy(actorName, args[0].c_str(), sizeof(actorName)) > sizeof(actorName)) {
+            spdlog::critical("Buffer overflow in actorName");
+            return;
+        }
+    }
+    std::string getCommandHelpText(void) const { return "Usage: Sends a ping message to the server."; }
 
     template <typename Stream>
     bool Serialize(Stream& stream) {

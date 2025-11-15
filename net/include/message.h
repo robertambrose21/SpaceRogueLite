@@ -16,6 +16,9 @@ public:
 
     virtual std::string toString(void) const = 0;
 
+    virtual void parseFromCommand(const std::vector<std::string>& args) = 0;
+    virtual std::string getCommandHelpText(void) const = 0;
+
     std::string getName() const { return name; }
     MessageChannel getMessageChannel() const noexcept { return channel; }
 
