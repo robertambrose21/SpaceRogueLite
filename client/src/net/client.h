@@ -5,6 +5,7 @@
 
 #include "connectionconfig.h"
 #include "messagefactory.h"
+#include "messagehandler.h"
 
 namespace SpaceRogueLite {
 
@@ -23,7 +24,7 @@ public:
 
 class Client {
 public:
-    explicit Client(uint32_t clientId, const yojimbo::Address& serverAddress);
+    explicit Client(uint32_t clientId, const yojimbo::Address& serverAddress, MessageHandler& messageHandler);
     ~Client();
 
     void connect(void);
@@ -46,8 +47,10 @@ private:
 
     ConnectionConfig connectionConfig;
 
+    MessageHandler& messageHandler;
+
     void processMessages(void);
-    void processMessage(yojimbo::Message* message);
+    void processMessage(Message* message);
 };
 
 }  // namespace SpaceRogueLite

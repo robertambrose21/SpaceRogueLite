@@ -11,27 +11,27 @@
 namespace SpaceRogueLite {
 
 /**
- * @brief Server-side implementation of MessageHandler
+ * @brief Client-side implementation of MessageHandler
  *
- * Processes incoming messages from clients and dispatches events to the game logic
+ * Processes incoming messages from the server and dispatches events to the game logic
  * via an entt::dispatcher.
  */
-class ServerMessageHandler : public MessageHandler {
+class ClientMessageHandler : public MessageHandler {
 public:
     /**
-     * @brief Construct a new Server Message Handler
+     * @brief Construct a new Client Message Handler
      *
      * @param dispatcher Reference to the event dispatcher for triggering game events
      */
-    explicit ServerMessageHandler(entt::dispatcher& dispatcher);
-    ~ServerMessageHandler() override = default;
+    explicit ClientMessageHandler(entt::dispatcher& dispatcher);
+    ~ClientMessageHandler() override = default;
 
     /**
      * @brief Process an incoming network message
      *
      * Routes messages to appropriate handlers based on message type.
      *
-     * @param clientIndex The index of the client that sent the message
+     * @param clientIndex The index of the connection (unused for client, always 0)
      * @param channel The channel the message was received on (RELIABLE/UNRELIABLE)
      * @param message The message to process
      */
@@ -44,11 +44,10 @@ public:
      * below the class declaration.
      *
      * @tparam MessageClass The concrete message class to handle
-     * @param clientIndex The index of the client that sent the message
      * @param message The typed message to handle
      */
     template <typename MessageClass>
-    void handleMessage(int clientIndex, MessageClass* message);
+    void handleMessage(MessageClass* message);
 
     /**
      * @brief Get the event dispatcher
@@ -64,10 +63,10 @@ private:
 };
 
 template <>
-inline void ServerMessageHandler::handleMessage<PingMessage>(int clientIndex, PingMessage* message) {}
+inline void ClientMessageHandler::handleMessage<PingMessage>(PingMessage* message) {}
 
 template <>
-inline void ServerMessageHandler::handleMessage<SpawnActorMessage>(int clientIndex, SpawnActorMessage* message) {
+inline void ClientMessageHandler::handleMessage<SpawnActorMessage>(SpawnActorMessage* message) {
     dispatcher.trigger<ActorSpawnEvent>({std::string(message->actorName)});
 }
 
@@ -83,9 +82,9 @@ inline void ServerMessageHandler::handleMessage<SpawnActorMessage>(int clientInd
  */
 template <typename MessageClass>
 constexpr auto makeHandler() {
-    return +[](ServerMessageHandler* handler, int clientIndex, Message* message) {
+    return +[](ClientMessageHandler* handler, int clientIndex, Message* message) {
         auto* typedMessage = static_cast<MessageClass*>(message);
-        handler->template handleMessage<MessageClass>(clientIndex, typedMessage);
+        handler->template handleMessage<MessageClass>(typedMessage);
     };
 }
 
@@ -98,7 +97,7 @@ constexpr auto makeHandler() {
  * @return Initialized HandlerRegistry
  */
 constexpr auto initializeHandlerRegistry() {
-    HandlerRegistry<ServerMessageHandler> registry;
+    HandlerRegistry<ClientMessageHandler> registry;
 
     // Generate handler registrations from MESSAGE_LIST
 #define MESSAGE_HANDLER_REGISTER(name, messageClass) \
@@ -115,6 +114,6 @@ constexpr auto initializeHandlerRegistry() {
  * This is constructed at compile time and embedded directly in the binary.
  * No runtime initialization overhead - the registry is ready to use immediately.
  */
-inline constexpr auto HANDLER_REGISTRY = initializeHandlerRegistry();
+inline constexpr auto CLIENT_HANDLER_REGISTRY = initializeHandlerRegistry();
 
 }  // namespace SpaceRogueLite
