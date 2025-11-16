@@ -12,6 +12,11 @@ public:
     ~ClientMessageTransmitter() override = default;
 
 public:
+    template <typename... Args>
+    void sendMessage(MessageType type, Args&&... args) {
+        MessageTransmitter::sendMessage(0, type, std::forward<Args>(args)...);
+    }
+
     /**
      * Client-specific convenience overload that doesn't require clientIndex.
      * Forwards to base class with clientIndex=0 (ignored by client implementation).

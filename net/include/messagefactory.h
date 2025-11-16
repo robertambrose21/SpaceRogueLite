@@ -31,10 +31,13 @@ public:
 
     std::string toString(void) const { return getName(); }
 
-    void parseFromCommand(const std::vector<std::string>& args) override {
+    bool parseFromCommand(const std::vector<std::string>& args) override {
         if (!args.empty()) {
             spdlog::warn("PingMessage expects 0 arguments, but received {}", args.size());
+            return false;
         }
+
+        return true;
     }
 
     std::string getCommandHelpText(void) const override { return "Sends a ping message."; }
@@ -57,28 +60,35 @@ public:
 
     std::string toString(void) const { return std::string(getName()) + ": " + actorName; }
 
-    void parseFromCommand(const std::vector<std::string>& args) override {
+    bool parseFromCommand(const std::vector<std::string>& args) override {
         if (args.size() != 1) {
             spdlog::warn("SpawnActorMessage expects 1 argument, but received {}", args.size());
-            return;
+            return false;
         }
 
-        const std::string& name = args[0];
-        if (name.empty()) {
-            spdlog::warn("SpawnActor parse received empty actor name");
-            return;
-        }
-
-        if (name.length() >= sizeof(actorName)) {
-            spdlog::warn("Actor name too long, must be less than {}", sizeof(actorName) - 1);
-            return;
-        }
-
-        if (strlcpy(actorName, name.c_str(), sizeof(actorName)) > sizeof(actorName)) {
-            spdlog::critical("Buffer overflow in actorName");
-            return;
-        }
+        return parse(args[0]);
     }
+
+    bool parse(const char* name) {
+        if (name == nullptr) {
+            spdlog::warn("SpawnActor parse received null actor name");
+            return false;
+        }
+
+        if (strlen(name) >= sizeof(actorName)) {
+            spdlog::warn("Actor name too long, must be less than {}", sizeof(actorName) - 1);
+            return false;
+        }
+
+        if (strlcpy(actorName, name, sizeof(actorName)) > sizeof(actorName)) {
+            spdlog::critical("Buffer overflow in actorName");
+            return false;
+        }
+
+        return true;
+    }
+
+    bool parse(const std::string& name) { return parse(name.c_str()); }
 
     std::string getCommandHelpText(void) const override { return "Spawns a new actor."; }
 

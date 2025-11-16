@@ -16,6 +16,34 @@ public:
 
     virtual constexpr const char* getName() const = 0;
     virtual std::string toString(void) const = 0;
+    virtual std::string getCommandHelpText(void) const = 0;
+
+    /**
+     * @brief Parse arguments to populate this message's data fields.
+     *
+     * Message implementations should override this method with specific parameter types
+     * that match their data requirements.
+     *
+     * Examples:
+     *   - No-argument messages (like PingMessage): void parse() {}
+     *   - Single argument: void parse(const std::string& name) { ... }
+     *   - Multiple arguments: void parse(int x, int y, float z) { ... }
+     *
+     * If this default implementation is called with arguments, it indicates the message
+     * class has not properly overridden parse() for its parameter types.
+     */
+    template <typename... Args>
+    bool parse(Args&&... args) {
+        if constexpr (sizeof...(args) > 0) {
+            spdlog::critical(
+                "Message '{}' called default parse() with {} argument(s) but has not overridden parse() for these "
+                "types. "
+                "Please implement parse() in your message class.",
+                getName(), sizeof...(args));
+            return false;
+        }
+        return true;
+    }
 
     /**
      * @brief Parse arguments from a command to populate this message's data fields.
@@ -36,9 +64,7 @@ public:
      *
      * @param args Vector of string arguments parsed from the command line
      */
-    virtual void parseFromCommand(const std::vector<std::string>& args) = 0;
-
-    virtual std::string getCommandHelpText(void) const = 0;
+    virtual bool parseFromCommand(const std::vector<std::string>& args) = 0;
 
     MessageChannel getMessageChannel() const noexcept { return channel; }
 

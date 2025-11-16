@@ -64,7 +64,7 @@ int main() {
     client.connect();
 
     // Send a test spawn message
-    messageTransmitter.sendMessageFromCommand(SpaceRogueLite::MessageType::SPAWN_ACTOR, {"Enemy5"});
+    messageTransmitter.sendMessage(SpaceRogueLite::MessageType::SPAWN_ACTOR, "Enemy5");
 
     game.run();
 
