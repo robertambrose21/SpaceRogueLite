@@ -1,9 +1,9 @@
 #pragma once
 
-#include <queue>
 #include <mutex>
-#include <string>
 #include <optional>
+#include <queue>
+#include <string>
 
 namespace SpaceRogueLite {
 
@@ -25,8 +25,8 @@ public:
      * Enqueue a command (called from input thread)
      */
     void enqueue(const std::string& command) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        queue_.push(command);
+        std::lock_guard<std::mutex> lock(mutex);
+        queue.push(command);
     }
 
     /**
@@ -34,12 +34,12 @@ public:
      * @return The next command if available, std::nullopt otherwise
      */
     std::optional<std::string> tryDequeue() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (queue_.empty()) {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (queue.empty()) {
             return std::nullopt;
         }
-        std::string command = queue_.front();
-        queue_.pop();
+        std::string command = queue.front();
+        queue.pop();
         return command;
     }
 
@@ -47,21 +47,21 @@ public:
      * Check if queue is empty
      */
     bool empty() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return queue_.empty();
+        std::lock_guard<std::mutex> lock(mutex);
+        return queue.empty();
     }
 
     /**
      * Get current queue size
      */
     size_t size() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return queue_.size();
+        std::lock_guard<std::mutex> lock(mutex);
+        return queue.size();
     }
 
 private:
-    std::queue<std::string> queue_;
-    mutable std::mutex mutex_;
+    std::queue<std::string> queue;
+    mutable std::mutex mutex;
 };
 
 }  // namespace SpaceRogueLite
