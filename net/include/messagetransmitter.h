@@ -23,23 +23,21 @@ public:
      * Send a message to a specific client with the specified type and arguments.
      * For Server usage, clientIndex specifies the target client.
      * For Client usage, clientIndex is ignored (typically passed as 0).
+     *
+     * @param clientIndex The target client index (ignored for Client implementations)
+     * @param type The message type to send
+     * @param args Vector of string arguments to pass to the message's parse() method
      */
-    template <typename... Args>
-    void sendMessage(int clientIndex, MessageType type, Args&&... args) {
+    void sendMessage(int clientIndex, MessageType type, const std::vector<std::string>& args) {
         auto message = createMessage(type, clientIndex);
-
-        // Cast to correct message type and call parse with proper type information
-        switch (type) {
-#define PARSE_MESSAGE(name, messageClass)                                              \
-    case MessageType::name:                                                            \
-        parseAndSend<messageClass>(message, clientIndex, std::forward<Args>(args)...); \
-        return;
-            MESSAGE_LIST(PARSE_MESSAGE)
-#undef PARSE_MESSAGE
-            default:
-                spdlog::error("Unknown message type in sendMessage");
-                return;
+        if (!message) {
+            spdlog::error("Failed to create message for type {}", static_cast<int>(type));
+            return;
         }
+
+        message->parse(args);
+
+        doSendMessage(message, clientIndex);
     }
 
 protected:
@@ -56,26 +54,6 @@ protected:
      * For Server implementations, clientIndex specifies which client to send the message to.
      */
     virtual void doSendMessage(Message* message, int clientIndex) = 0;
-
-private:
-    // Helper template to parse message with correct type
-    template <typename MessageClass, typename... Args>
-    void parseAndSend(Message* message, int clientIndex, Args&&... args) {
-        auto* typedMessage = static_cast<MessageClass*>(message);
-
-        // Only call parse if it's valid for these argument types
-        if constexpr (requires { typedMessage->parse(std::forward<Args>(args)...); }) {
-            typedMessage->parse(std::forward<Args>(args)...);
-        } else {
-            spdlog::critical(
-                "Message '{}' does not have a parse() overload for {} argument(s) of the provided types. "
-                "Not sending message.",
-                typedMessage->getName(), sizeof...(args));
-            return;
-        }
-
-        doSendMessage(message, clientIndex);
-    }
 };
 
 }  // namespace SpaceRogueLite

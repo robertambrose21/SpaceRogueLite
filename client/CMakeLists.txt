@@ -7,7 +7,14 @@ find_package(core REQUIRED)
 find_package(net REQUIRED)
 find_package(yojimbo REQUIRED)
 
-add_executable(client src/main.cpp src/net/client.cpp src/net/clientmessagehandler.cpp src/net/clientmessagetransmitter.cpp)
+add_executable(client
+        src/main.cpp
+        src/net/client.cpp
+        src/net/clientmessagehandler.cpp
+        src/net/clientmessagetransmitter.cpp
+        src/net/inputcommandhandler.cpp
+        src/net/commandparser.h
+        src/net/commandqueue.h)
 set_target_properties(client PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 20)
 target_link_libraries(client PRIVATE core::core net::net yojimbo::yojimbo)
 

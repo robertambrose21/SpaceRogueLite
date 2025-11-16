@@ -25,13 +25,19 @@ enum class MessageType {
 
 class PingMessage : public Message {
 public:
-    PingMessage() : Message("Ping", MessageChannel::UNRELIABLE) {}
+    PingMessage() : Message(MessageChannel::UNRELIABLE) {}
+
+    constexpr const char* getName() const override { return "Ping"; }
 
     std::string toString(void) const { return getName(); }
 
-    void parse() {}
+    void parse(const std::vector<std::string>& args) override {
+        if (!args.empty()) {
+            spdlog::warn("PingMessage expects 0 arguments, but received {}", args.size());
+        }
+    }
 
-    std::string getCommandHelpText(void) const { return "Usage: Sends a ping message to the server."; }
+    std::string getCommandHelpText(void) const override { return "Usage: Sends a ping message to the server."; }
 
     template <typename Stream>
     bool Serialize(Stream& stream) {
@@ -43,33 +49,38 @@ public:
 
 class SpawnActorMessage : public Message {
 public:
-    SpawnActorMessage() : Message("SpawnActor", MessageChannel::RELIABLE) {}
+    SpawnActorMessage() : Message(MessageChannel::RELIABLE) {}
+
+    constexpr const char* getName() const override { return "SpawnActor"; }
 
     char actorName[256];
 
-    std::string toString(void) const { return getName() + ": " + actorName; }
+    std::string toString(void) const { return std::string(getName()) + ": " + actorName; }
 
-    void parse(const char* name) {
-        if (name == nullptr) {
-            spdlog::warn("SpawnActor parse received null actor name");
+    void parse(const std::vector<std::string>& args) override {
+        if (args.size() != 1) {
+            spdlog::warn("SpawnActorMessage expects 1 argument, but received {}", args.size());
             return;
         }
 
-        size_t nameLen = strlen(name);
-        if (nameLen >= sizeof(actorName)) {
+        const std::string& name = args[0];
+        if (name.empty()) {
+            spdlog::warn("SpawnActor parse received empty actor name");
+            return;
+        }
+
+        if (name.length() >= sizeof(actorName)) {
             spdlog::warn("Actor name too long, must be less than {}", sizeof(actorName) - 1);
             return;
         }
 
-        if (strlcpy(actorName, name, sizeof(actorName)) > sizeof(actorName)) {
+        if (strlcpy(actorName, name.c_str(), sizeof(actorName)) > sizeof(actorName)) {
             spdlog::critical("Buffer overflow in actorName");
             return;
         }
     }
 
-    void parse(const std::string& name) { parse(name.c_str()); }
-
-    std::string getCommandHelpText(void) const { return "Usage: Sends a ping message to the server."; }
+    std::string getCommandHelpText(void) const override { return "Usage: Sends a ping message to the server."; }
 
     template <typename Stream>
     bool Serialize(Stream& stream) {
