@@ -18,7 +18,7 @@ public:
     virtual std::string toString(void) const = 0;
 
     /**
-     * @brief Parse arguments to populate this message's data fields.
+     * @brief Parse arguments from a command to populate this message's data fields.
      *
      * Message implementations should override this method to extract and validate
      * arguments from the provided vector.
@@ -36,7 +36,7 @@ public:
      *
      * @param args Vector of string arguments parsed from the command line
      */
-    virtual void parse(const std::vector<std::string>& args) = 0;
+    virtual void parseFromCommand(const std::vector<std::string>& args) = 0;
 
     virtual std::string getCommandHelpText(void) const = 0;
 

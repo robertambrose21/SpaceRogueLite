@@ -20,7 +20,7 @@ public:
 
 public:
     /**
-     * Send a message to a specific client with the specified type and arguments.
+     * Send a message to a specific client with the specified type and arguments from a command.
      * For Server usage, clientIndex specifies the target client.
      * For Client usage, clientIndex is ignored (typically passed as 0).
      *
@@ -28,14 +28,14 @@ public:
      * @param type The message type to send
      * @param args Vector of string arguments to pass to the message's parse() method
      */
-    void sendMessage(int clientIndex, MessageType type, const std::vector<std::string>& args) {
+    void sendMessageFromCommand(int clientIndex, MessageType type, const std::vector<std::string>& args) {
         auto message = createMessage(type, clientIndex);
         if (!message) {
             spdlog::error("Failed to create message for type {}", static_cast<int>(type));
             return;
         }
 
-        message->parse(args);
+        message->parseFromCommand(args);
 
         doSendMessage(message, clientIndex);
     }

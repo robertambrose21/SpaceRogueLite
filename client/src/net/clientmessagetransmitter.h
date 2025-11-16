@@ -19,8 +19,8 @@ public:
      * @param type The message type to send
      * @param args Vector of string arguments to pass to the message's parse() method
      */
-    void sendMessage(MessageType type, const std::vector<std::string>& args) {
-        MessageTransmitter::sendMessage(0, type, args);
+    void sendMessageFromCommand(MessageType type, const std::vector<std::string>& args) {
+        MessageTransmitter::sendMessageFromCommand(0, type, args);
     }
 
 protected:

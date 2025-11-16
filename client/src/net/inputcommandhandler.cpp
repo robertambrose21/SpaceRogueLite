@@ -58,7 +58,7 @@ void InputCommandHandler::processCommands(int64_t timeSinceLastFrame) {
 
         const auto& cmd = parsedCommand.value();
 
-        transmitter.sendMessage(cmd.messageType, cmd.arguments);
+        transmitter.sendMessageFromCommand(cmd.messageType, cmd.arguments);
     }
 }
 

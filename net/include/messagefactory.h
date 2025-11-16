@@ -31,13 +31,13 @@ public:
 
     std::string toString(void) const { return getName(); }
 
-    void parse(const std::vector<std::string>& args) override {
+    void parseFromCommand(const std::vector<std::string>& args) override {
         if (!args.empty()) {
             spdlog::warn("PingMessage expects 0 arguments, but received {}", args.size());
         }
     }
 
-    std::string getCommandHelpText(void) const override { return "Usage: Sends a ping message to the server."; }
+    std::string getCommandHelpText(void) const override { return "Sends a ping message."; }
 
     template <typename Stream>
     bool Serialize(Stream& stream) {
@@ -57,7 +57,7 @@ public:
 
     std::string toString(void) const { return std::string(getName()) + ": " + actorName; }
 
-    void parse(const std::vector<std::string>& args) override {
+    void parseFromCommand(const std::vector<std::string>& args) override {
         if (args.size() != 1) {
             spdlog::warn("SpawnActorMessage expects 1 argument, but received {}", args.size());
             return;
@@ -80,7 +80,7 @@ public:
         }
     }
 
-    std::string getCommandHelpText(void) const override { return "Usage: Sends a ping message to the server."; }
+    std::string getCommandHelpText(void) const override { return "Spawns a new actor."; }
 
     template <typename Stream>
     bool Serialize(Stream& stream) {
