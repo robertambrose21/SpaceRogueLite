@@ -5,9 +5,10 @@ using namespace SpaceRogueLite;
 // ---------------------------------------------------------------
 // -- CLIENT -----------------------------------------------------
 // ---------------------------------------------------------------
-Client::Client(uint32_t clientId, const yojimbo::Address& serverAddress)
+Client::Client(uint32_t clientId, const yojimbo::Address& serverAddress, MessageHandler& messageHandler)
     : clientId(clientId),
       serverAddress(serverAddress),
+      messageHandler(messageHandler),
       adapter(ClientAdapter()),
       client(yojimbo::GetDefaultAllocator(), yojimbo::Address("0.0.0.0"), ConnectionConfig(), adapter, 0.0) {}
 
@@ -60,15 +61,15 @@ void Client::processMessages(void) {
     for (int i = 0; i < connectionConfig.numChannels; i++) {
         yojimbo::Message* message = client.ReceiveMessage(i);
         while (message != NULL) {
-            processMessage(message);
+            processMessage(static_cast<Message*>(message));
             client.ReleaseMessage(message);
             message = client.ReceiveMessage(i);
         }
     }
 }
 
-void Client::processMessage(yojimbo::Message* message) {
-    spdlog::info("Received message of type {} from the server", message->GetType());
+void Client::processMessage(Message* message) {
+    messageHandler.processMessage(0, message->getMessageChannel(), message);
 }
 
 uint64_t Client::getClientId(void) const { return clientId; }

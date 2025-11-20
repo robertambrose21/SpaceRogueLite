@@ -1,9 +1,16 @@
 #include <spdlog/spdlog.h>
 #include <yojimbo.h>
+#include <cstring>
+#include <entt/entt.hpp>
 
+#include "actorspawner.h"
 #include "game.h"
 #include "message.h"
+#include "messagefactory.h"
 #include "net/client.h"
+#include "net/clientmessagehandler.h"
+#include "net/clientmessagetransmitter.h"
+#include "net/inputcommandhandler.h"
 
 int main() {
 #if !defined(NDEBUG)
@@ -18,8 +25,17 @@ int main() {
 
     spdlog::info("Yojimbo initialized successfully.");
 
+    entt::registry registry;
+    entt::dispatcher dispatcher;
+
+    SpaceRogueLite::ClientMessageHandler messageHandler(dispatcher);
+    SpaceRogueLite::ActorSpawner spawner(registry, dispatcher);
+
     SpaceRogueLite::Game game;
-    SpaceRogueLite::Client client(1, yojimbo::Address("127.0.0.1", 8081));
+    SpaceRogueLite::Client client(1, yojimbo::Address("127.0.0.1", 8081), messageHandler);
+    SpaceRogueLite::ClientMessageTransmitter messageTransmitter(client);
+
+    SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
 
     game.attachWorker({1, "ClientUpdateLoop",
                        [&client](int64_t timeSinceLastFrame, bool& quit) { client.update(timeSinceLastFrame); }});
@@ -39,9 +55,16 @@ int main() {
         ticks = 0;
     };
 
-    game.attachWorker({2, "PingTest", workerFunc});
+    // game.attachWorker({2, "PingTest", workerFunc});
+
+    game.attachWorker({3, "InputHandler", [&inputHandler](int64_t timeSinceLastFrame, bool& quit) {
+                           inputHandler.processCommands(timeSinceLastFrame);
+                       }});
 
     client.connect();
+
+    // Send a test spawn message
+    messageTransmitter.sendMessage(SpaceRogueLite::MessageType::SPAWN_ACTOR, "Enemy5");
 
     game.run();
 

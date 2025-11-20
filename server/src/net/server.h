@@ -8,6 +8,7 @@
 #include "connectionconfig.h"
 #include "message.h"
 #include "messagefactory.h"
+#include "messagehandler.h"
 
 namespace SpaceRogueLite {
 
@@ -33,7 +34,7 @@ private:
 
 class Server {
 public:
-    explicit Server(const yojimbo::Address& address, int maxConnections);
+    explicit Server(const yojimbo::Address& address, int maxConnections, MessageHandler& messageHandler);
     ~Server();
 
     void start(void);
@@ -60,6 +61,8 @@ private:
 
     int maxConnections;
     std::map<uint64_t, ConnectionState> clientIds;
+
+    MessageHandler& messageHandler;
 
     void processMessages(void);
     void processMessage(int clientIndex, MessageChannel channel, Message* message);

@@ -3,6 +3,9 @@ IndentWidth: 4
 AccessModifierOffset: -4
 ColumnLimit: 120
 
+AlignEscapedNewlines: Left
+IndentPPDirectives: None
+
 BinPackParameters: true
 BinPackArguments: true
 

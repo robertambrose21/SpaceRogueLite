@@ -5,11 +5,12 @@ using namespace SpaceRogueLite;
 // ---------------------------------------------------------------
 // -- SERVER -----------------------------------------------------
 // ---------------------------------------------------------------
-Server::Server(const yojimbo::Address& address, int maxConnections)
+Server::Server(const yojimbo::Address& address, int maxConnections, MessageHandler& messageHandler)
     : adapter(this),
       address(address),
       server(yojimbo::GetDefaultAllocator(), SERVER_DEFAULT_PRIVATE_KEY, address, ConnectionConfig(), adapter, 0.0),
-      maxConnections(maxConnections) {}
+      maxConnections(maxConnections),
+      messageHandler(messageHandler) {}
 
 Server::~Server() {
     if (server.IsRunning()) {
@@ -87,8 +88,7 @@ void Server::processMessages(void) {
 }
 
 void Server::processMessage(int clientIndex, MessageChannel channel, Message* message) {
-    spdlog::debug("Received '{}' message from client {} on channel {}", message->getName(), clientIndex,
-                  MessageChannelToString(channel));
+    messageHandler.processMessage(clientIndex, channel, message);
 }
 
 void Server::onClientConnected(int clientIndex) {
