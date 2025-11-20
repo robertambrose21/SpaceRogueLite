@@ -121,12 +121,14 @@ private:
         std::transform(upperName.begin(), upperName.end(), upperName.begin(),
                        [](unsigned char c) { return std::toupper(c); });
 
-#define MESSAGE_TYPE_MATCH(enumName, messageClass) \
-    if (upperName == #enumName) {                  \
-        return MessageType::enumName;              \
-    }
+        // clang-format off
+#define MESSAGE_TYPE_MATCH(enumName, messageClass)     \
+        if (upperName == #enumName) {                  \
+            return MessageType::enumName;              \
+        }
         MESSAGE_LIST(MESSAGE_TYPE_MATCH)
 #undef MESSAGE_TYPE_MATCH
+        // clang-format on
 
         return std::nullopt;
     }
@@ -136,12 +138,14 @@ private:
      */
     static void printAvailableMessages() {
         spdlog::info("Available message types:");
-#define PRINT_MESSAGE_HELP(enumName, messageClass) \
-    {                                              \
-        spdlog::info("  - {}", #enumName);         \
-    }
+        // clang-format off
+#define PRINT_MESSAGE_HELP(enumName, messageClass)     \
+        {                                              \
+            spdlog::info("  - {}", #enumName);         \
+        }
         MESSAGE_LIST(PRINT_MESSAGE_HELP)
 #undef PRINT_MESSAGE_HELP
+        // clang-format on
     }
 };
 

@@ -30,12 +30,14 @@ public:
 
         // Cast to correct message type and call parse with proper type information
         switch (type) {
-#define PARSE_MESSAGE(name, messageClass)                                              \
-    case MessageType::name:                                                            \
-        parseAndSend<messageClass>(message, clientIndex, std::forward<Args>(args)...); \
-        return;
+            // clang-format off
+#define PARSE_MESSAGE(name, messageClass)                                                      \
+            case MessageType::name:                                                            \
+                parseAndSend<messageClass>(message, clientIndex, std::forward<Args>(args)...); \
+                return;
             MESSAGE_LIST(PARSE_MESSAGE)
 #undef PARSE_MESSAGE
+            // clang-format on
             default:
                 spdlog::error("Unknown message type in sendMessage");
                 return;
