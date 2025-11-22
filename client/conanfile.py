@@ -21,20 +21,10 @@ class clientRecipe(ConanFile):
     exports_sources = "CMakeLists.txt", "src/*", "../scripts/merge_compile_commands.py"
 
     def requirements(self):
-        self.requires("sdl/3.2.20")
-        self.requires("sdl_image/3.2.4")
-        self.requires("sdl_ttf/3.2.2")
         self.requires("yojimbo/v1.2.5")
         self.requires("net/1.0.0-prealpha")
         self.requires("core/1.0.0-prealpha")
-        # Override mpg123 to use newer version with GCC 15+ fixes
-        self.requires("mpg123/1.33.0", override=True)
-
-    def configure(self):
-        # Disable OpenGLES to avoid missing GLES headers issue
-        self.options["sdl"].opengles = False
-        # Disable Wayland to avoid libdecor linking issues
-        self.options["sdl"].wayland = False
+        self.requires("graphics/1.0.0-prealpha")
 
     def layout(self):
         cmake_layout(self)

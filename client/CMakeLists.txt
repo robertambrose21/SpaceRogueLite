@@ -6,7 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(core REQUIRED)
 find_package(net REQUIRED)
 find_package(yojimbo REQUIRED)
-find_package(SDL3 REQUIRED)
+find_package(graphics REQUIRED)
 
 add_executable(client
         src/main.cpp
@@ -15,10 +15,9 @@ add_executable(client
         src/net/clientmessagetransmitter.cpp
         src/net/inputcommandhandler.cpp
         src/net/commandparser.h
-        src/net/commandqueue.h
-        src/graphics/window.cpp)
+        src/net/commandqueue.h)
 set_target_properties(client PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 20)
-target_link_libraries(client PRIVATE core::core net::net yojimbo::yojimbo SDL3::SDL3)
+target_link_libraries(client PRIVATE core::core net::net yojimbo::yojimbo graphics::graphics)
 
 install(TARGETS client DESTINATION "."
         RUNTIME DESTINATION bin

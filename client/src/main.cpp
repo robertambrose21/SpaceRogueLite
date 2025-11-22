@@ -5,7 +5,7 @@
 
 #include "actorspawner.h"
 #include "game.h"
-#include "graphics/window.h"
+#include <window.h>
 #include "message.h"
 #include "messagefactory.h"
 #include "net/client.h"
