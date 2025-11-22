@@ -14,9 +14,11 @@ public:
     ~Window();
 
     bool initialize(void);
+    bool initializeImgui(void);
     void close(void);
 
     void update(int64_t timeSinceLastFrame, bool& quit);
+    void updateUI(int64_t timeSinceLastFrame, bool& quit);
 
 private:
     std::string title;

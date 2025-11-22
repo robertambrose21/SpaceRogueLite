@@ -40,3 +40,7 @@ bin/
 *.log
 *.tmp
 *.swp
+
+# ImGui backends (copied during Conan generate)
+graphics/src/backends/imgui_impl_*.cpp
+graphics/src/backends/imgui_impl_*.h

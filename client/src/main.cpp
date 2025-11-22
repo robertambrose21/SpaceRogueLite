@@ -3,8 +3,8 @@
 #include <cstring>
 #include <entt/entt.hpp>
 
-#include "actorspawner.h"
-#include "game.h"
+#include <actorspawner.h>
+#include <game.h>
 #include <window.h>
 #include "message.h"
 #include "messagefactory.h"
@@ -38,7 +38,7 @@ int main() {
         SpaceRogueLite::ClientMessageTransmitter messageTransmitter(client);
         SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
 
-        SpaceRogueLite::Window window("SpaceRogueLite Client", 800, 600);
+        SpaceRogueLite::Window window("SpaceRogueLite Client", 1920, 1080);
         window.initialize();
 
         game.attachWorker(
@@ -65,11 +65,7 @@ int main() {
         client.disconnect();
     }
 
-    spdlog::info("Shutting down Yojimbo.");
-
     ShutdownYojimbo();
-
-    spdlog::info("Shutdown Yojimbo.");
 
     return 0;
 }
