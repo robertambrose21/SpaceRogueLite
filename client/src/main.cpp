@@ -5,6 +5,7 @@
 
 #include "actorspawner.h"
 #include "game.h"
+#include "graphics/window.h"
 #include "message.h"
 #include "messagefactory.h"
 #include "net/client.h"
@@ -25,52 +26,50 @@ int main() {
 
     spdlog::info("Yojimbo initialized successfully.");
 
-    entt::registry registry;
-    entt::dispatcher dispatcher;
+    {
+        entt::registry registry;
+        entt::dispatcher dispatcher;
 
-    SpaceRogueLite::ClientMessageHandler messageHandler(dispatcher);
-    SpaceRogueLite::ActorSpawner spawner(registry, dispatcher);
+        SpaceRogueLite::ClientMessageHandler messageHandler(dispatcher);
+        SpaceRogueLite::ActorSpawner spawner(registry, dispatcher);
 
-    SpaceRogueLite::Game game;
-    SpaceRogueLite::Client client(1, yojimbo::Address("127.0.0.1", 8081), messageHandler);
-    SpaceRogueLite::ClientMessageTransmitter messageTransmitter(client);
+        SpaceRogueLite::Game game;
+        SpaceRogueLite::Client client(1, yojimbo::Address("127.0.0.1", 8081), messageHandler);
+        SpaceRogueLite::ClientMessageTransmitter messageTransmitter(client);
+        SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
 
-    SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
+        SpaceRogueLite::Window window("SpaceRogueLite Client", 800, 600);
+        window.initialize();
 
-    game.attachWorker({1, "ClientUpdateLoop",
-                       [&client](int64_t timeSinceLastFrame, bool& quit) { client.update(timeSinceLastFrame); }});
+        game.attachWorker(
+            {1, "ClientUpdateLoop", [&client](int64_t timeSinceLastFrame, bool& quit) {
+                 client.update(timeSinceLastFrame);
+             }});
 
-    int64_t ticks = 0;
-    int64_t delay = 1000;
-    auto workerFunc = [&](int64_t timeSinceLastFrame, bool& quit) {
-        ticks += timeSinceLastFrame;
+        game.attachWorker({2, "RenderLoop", [&window](int64_t timeSinceLastFrame, bool& quit) {
+                               window.update(timeSinceLastFrame, quit);
+                           }});
 
-        if (ticks < delay) {
-            return;
-        }
+        game.attachWorker(
+            {3, "InputHandler", [&inputHandler](int64_t timeSinceLastFrame, bool& quit) {
+                 inputHandler.processCommands(timeSinceLastFrame);
+             }});
 
-        auto message = client.createMessage(SpaceRogueLite::MessageType::PING);
-        client.sendMessage(message);
+        client.connect();
 
-        ticks = 0;
-    };
+        // Send a test spawn message
+        messageTransmitter.sendMessage(SpaceRogueLite::MessageType::SPAWN_ACTOR, "Enemy5");
 
-    // game.attachWorker({2, "PingTest", workerFunc});
+        game.run();
 
-    game.attachWorker({3, "InputHandler", [&inputHandler](int64_t timeSinceLastFrame, bool& quit) {
-                           inputHandler.processCommands(timeSinceLastFrame);
-                       }});
+        client.disconnect();
+    }
 
-    client.connect();
-
-    // Send a test spawn message
-    messageTransmitter.sendMessage(SpaceRogueLite::MessageType::SPAWN_ACTOR, "Enemy5");
-
-    game.run();
-
-    client.disconnect();
+    spdlog::info("Shutting down Yojimbo.");
 
     ShutdownYojimbo();
+
+    spdlog::info("Shutdown Yojimbo.");
 
     return 0;
 }
