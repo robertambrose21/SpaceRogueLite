@@ -67,8 +67,9 @@ class graphicsRecipe(ConanFile):
         backends = [
             "imgui_impl_sdl3.h",
             "imgui_impl_sdl3.cpp",
-            "imgui_impl_sdlrenderer3.h",
-            "imgui_impl_sdlrenderer3.cpp",
+            "imgui_impl_sdlgpu3.h",
+            "imgui_impl_sdlgpu3.cpp",
+            "imgui_impl_sdlgpu3_shaders.h",
         ]
 
         for backend in backends:

@@ -26,7 +26,7 @@ private:
     size_t height;
 
     SDL_Window* sdlWindow = nullptr;
-    SDL_Renderer* sdlRenderer = nullptr;
+    SDL_GPUDevice* gpuDevice = nullptr;
 };
 
 }  // namespace SpaceRogueLite

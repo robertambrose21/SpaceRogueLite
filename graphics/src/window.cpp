@@ -1,6 +1,6 @@
 #include "window.h"
 #include "backends/imgui_impl_sdl3.h"
-#include "backends/imgui_impl_sdlrenderer3.h"
+#include "backends/imgui_impl_sdlgpu3.h"
 #include "imgui.h"
 
 using namespace SpaceRogueLite;
@@ -16,15 +16,38 @@ bool Window::initialize(void) {
         return false;
     }
 
-    if (!SDL_CreateWindowAndRenderer("Window", static_cast<int>(width), static_cast<int>(height), 0,
-                                     &sdlWindow, &sdlRenderer)) {
+    sdlWindow = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
+                                 SDL_WINDOW_HIGH_PIXEL_DENSITY);
+    if (!sdlWindow) {
         spdlog::critical("SDL window could not be created: {}", SDL_GetError());
         return false;
     }
 
-    if (!initializeImgui()) {
+#ifndef NDEBUG
+    bool debugMode = true;
+#else
+    bool debugMode = false;
+#endif
+
+    gpuDevice = SDL_CreateGPUDevice(
+        SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_MSL,
+        debugMode, nullptr);
+    if (!gpuDevice) {
+        spdlog::critical("SDL GPU device could not be created: {}", SDL_GetError());
         return false;
     }
+
+    if (!SDL_ClaimWindowForGPUDevice(gpuDevice, sdlWindow)) {
+        spdlog::critical("Could not claim window for GPU device: {}", SDL_GetError());
+        return false;
+    }
+
+    if (!initializeImgui()) {
+        spdlog::critical("Could not initialize ImGui");
+        return false;
+    }
+
+    SDL_WaitForGPUIdle(gpuDevice);
 
     return true;
 }
@@ -37,18 +60,23 @@ bool Window::initializeImgui(void) {
 
     ImGui::StyleColorsDark();
 
-    ImGui_ImplSDL3_InitForSDLRenderer(sdlWindow, sdlRenderer);
-    ImGui_ImplSDLRenderer3_Init(sdlRenderer);
+    ImGui_ImplSDL3_InitForSDLGPU(sdlWindow);
+    ImGui_ImplSDLGPU3_InitInfo initInfo = {};
+    initInfo.Device = gpuDevice;
+    initInfo.ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(gpuDevice, sdlWindow);
+    initInfo.PresentMode = SDL_GPU_PRESENTMODE_VSYNC;
+    ImGui_ImplSDLGPU3_Init(&initInfo);
 
     return true;
 }
 
 void Window::close(void) {
-    ImGui_ImplSDLRenderer3_Shutdown();
+    ImGui_ImplSDLGPU3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
-    SDL_DestroyRenderer(sdlRenderer);
+    SDL_ReleaseWindowFromGPUDevice(gpuDevice, sdlWindow);
+    SDL_DestroyGPUDevice(gpuDevice);
     SDL_DestroyWindow(sdlWindow);
     SDL_Quit();
 }
@@ -65,15 +93,51 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
 
     updateUI(timeSinceLastFrame, quit);
 
-    SDL_SetRenderDrawColor(sdlRenderer, 0x00, 0x00, 0x00, 0xFF);
-    SDL_RenderClear(sdlRenderer);
-    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), sdlRenderer);
-    SDL_RenderPresent(sdlRenderer);
+    SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(gpuDevice);
+    if (!commandBuffer) {
+        spdlog::error("Failed to acquire GPU command buffer: {}", SDL_GetError());
+        return;
+    }
+
+    ImDrawData* drawData = ImGui::GetDrawData();
+    if (drawData && drawData->Valid) {
+        ImGui_ImplSDLGPU3_PrepareDrawData(drawData, commandBuffer);
+    }
+
+    SDL_GPUTexture* swapchainTexture = nullptr;
+    if (!SDL_WaitAndAcquireGPUSwapchainTexture(commandBuffer, sdlWindow, &swapchainTexture, nullptr,
+                                               nullptr)) {
+        spdlog::error("Failed to acquire swapchain texture: {}", SDL_GetError());
+        SDL_SubmitGPUCommandBuffer(commandBuffer);
+        return;
+    }
+
+    if (swapchainTexture != nullptr) {
+        SDL_GPUColorTargetInfo colorTarget = {};
+        colorTarget.texture = swapchainTexture;
+        colorTarget.load_op = SDL_GPU_LOADOP_CLEAR;
+        colorTarget.store_op = SDL_GPU_STOREOP_STORE;
+        colorTarget.clear_color.r = 0.0f;
+        colorTarget.clear_color.g = 0.0f;
+        colorTarget.clear_color.b = 0.0f;
+        colorTarget.clear_color.a = 1.0f;
+
+        SDL_GPURenderPass* renderPass =
+            SDL_BeginGPURenderPass(commandBuffer, &colorTarget, 1, nullptr);
+
+        if (drawData && drawData->Valid) {
+            ImGui_ImplSDLGPU3_RenderDrawData(drawData, commandBuffer, renderPass);
+        }
+
+        SDL_EndGPURenderPass(renderPass);
+    }
+
+    SDL_SubmitGPUCommandBuffer(commandBuffer);
 }
 
 void Window::updateUI(int64_t timeSinceLastFrame, bool& quit) {
-    ImGui_ImplSDLRenderer3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
+    ImGui_ImplSDLGPU3_NewFrame();
     ImGui::NewFrame();
 
     ImGui::ShowDemoWindow();
