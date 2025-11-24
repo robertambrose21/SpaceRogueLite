@@ -1,4 +1,6 @@
 #include "window.h"
+#include <SDL3_image/SDL_image.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_sdlgpu3.h"
 #include "imgui.h"
@@ -13,6 +15,12 @@ Window::~Window() { close(); }
 bool Window::initialize(void) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         spdlog::critical("SDL could not be initialized: {}", SDL_GetError());
+        return false;
+    }
+
+    // Initialize SDL_ttf (SDL_image needs no initialization in SDL3)
+    if (!TTF_Init()) {
+        spdlog::critical("SDL_ttf could not be initialized: {}", SDL_GetError());
         return false;
     }
 
@@ -78,6 +86,10 @@ void Window::close(void) {
     SDL_ReleaseWindowFromGPUDevice(gpuDevice, sdlWindow);
     SDL_DestroyGPUDevice(gpuDevice);
     SDL_DestroyWindow(sdlWindow);
+
+    // Cleanup SDL_ttf (SDL_image needs no cleanup in SDL3)
+    TTF_Quit();
+
     SDL_Quit();
 }
 

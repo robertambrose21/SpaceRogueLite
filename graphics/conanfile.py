@@ -23,12 +23,12 @@ class graphicsRecipe(ConanFile):
 
     def requirements(self):
         self.requires("sdl/3.2.20")
-        self.requires("sdl_image/3.2.4")
-        self.requires("sdl_ttf/3.2.2")
+        self.requires("sdl_image/3.2.4", transitive_headers=True)
+        self.requires("sdl_ttf/3.2.2", transitive_headers=True)
         # Override mpg123 to use newer version with GCC 15+ fixes
         self.requires("mpg123/1.33.0", override=True)
 
-        self.requires("imgui/1.92.4")
+        self.requires("imgui/1.92.4", transitive_headers=True)
 
         self.requires("core/1.0.0-prealpha")
 
@@ -53,13 +53,13 @@ class graphicsRecipe(ConanFile):
         tc = CMakeToolchain(self)
         tc.generate()
 
-        # Copy ImGui backends to src/backends directory
+        # Copy ImGui backends to include/backends directory
         import shutil
         from pathlib import Path
 
         imgui_dep = self.dependencies["imgui"]
         imgui_res_dir = Path(imgui_dep.package_folder) / "res" / "bindings"
-        backends_dir = Path(self.source_folder) / "src" / "backends"
+        backends_dir = Path(self.source_folder) / "include" / "backends"
 
         # Create backends directory if it doesn't exist
         backends_dir.mkdir(parents=True, exist_ok=True)
@@ -77,7 +77,7 @@ class graphicsRecipe(ConanFile):
             dst_file = backends_dir / backend
             if src_file.exists():
                 shutil.copy2(src_file, dst_file)
-                self.output.info(f"Copied {backend} to src/backends/")
+                self.output.info(f"Copied {backend} to include/backends/")
 
     def build(self):
         cmake = CMake(self)
