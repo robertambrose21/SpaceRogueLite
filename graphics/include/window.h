@@ -15,10 +15,12 @@ public:
 
     bool initialize(void);
     bool initializeImgui(void);
+    bool initializeSquareRendering(void);
     void close(void);
 
     void update(int64_t timeSinceLastFrame, bool& quit);
     void updateUI(int64_t timeSinceLastFrame, bool& quit);
+    void renderSquare(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass);
 
 private:
     std::string title;
@@ -27,6 +29,12 @@ private:
 
     SDL_Window* sdlWindow = nullptr;
     SDL_GPUDevice* gpuDevice = nullptr;
+
+    // Square rendering resources
+    SDL_GPUShader* squareVertexShader = nullptr;
+    SDL_GPUShader* squareFragmentShader = nullptr;
+    SDL_GPUGraphicsPipeline* squarePipeline = nullptr;
+    SDL_GPUBuffer* squareVertexBuffer = nullptr;
 };
 
 }  // namespace SpaceRogueLite

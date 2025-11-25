@@ -44,3 +44,5 @@ bin/
 # ImGui backends (copied during Conan generate)
 graphics/include/backends/imgui_impl_*.cpp
 graphics/include/backends/imgui_impl_*.h
+
+imgui.ini
