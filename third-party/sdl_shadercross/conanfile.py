@@ -27,6 +27,8 @@ class SDLShadercrossConan(ConanFile):
         git.clone("https://github.com/libsdl-org/SDL_shadercross.git",
                   target=str(self.source_folder),
                   args=["--recurse-submodules"])
+        # Unfortunately, SDL_shadercross has no tags/branches - pin to a commit hash instead!
+        git.checkout("3e572c3219ea438bff849cebea34f3aad7e1859b")
 
     def configure(self):
         # Disable OpenGLES to avoid missing GLES headers issue
