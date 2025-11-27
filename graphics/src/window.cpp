@@ -7,6 +7,7 @@
 #include "backends/imgui_impl_sdlgpu3.h"
 #include "imgui.h"
 #include "shaders/simple_square_shaders.h"
+#include "shaders/textured_quad_shaders.h"
 
 using namespace SpaceRogueLite;
 
@@ -62,6 +63,11 @@ bool Window::initialize(void) {
         return false;
     }
 
+    if (!initializeTexturedQuadRendering()) {
+        spdlog::critical("Could not initialize textured quad rendering");
+        return false;
+    }
+
     SDL_WaitForGPUIdle(gpuDevice);
 
     return true;
@@ -88,8 +94,8 @@ bool Window::initializeImgui(void) {
 bool Window::initializeSquareRendering(void) {
     // Create vertex shader
     SDL_GPUShaderCreateInfo vertexShaderInfo = {};
-    vertexShaderInfo.code = spirv_vertex;
-    vertexShaderInfo.code_size = sizeof(spirv_vertex);
+    vertexShaderInfo.code = simple_square_spirv_vertex;
+    vertexShaderInfo.code_size = sizeof(simple_square_spirv_vertex);
     vertexShaderInfo.entrypoint = "main";
     vertexShaderInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
     vertexShaderInfo.stage = SDL_GPU_SHADERSTAGE_VERTEX;
@@ -106,8 +112,8 @@ bool Window::initializeSquareRendering(void) {
 
     // Create fragment shader
     SDL_GPUShaderCreateInfo fragmentShaderInfo = {};
-    fragmentShaderInfo.code = spirv_fragment;
-    fragmentShaderInfo.code_size = sizeof(spirv_fragment);
+    fragmentShaderInfo.code = simple_square_spirv_fragment;
+    fragmentShaderInfo.code_size = sizeof(simple_square_spirv_fragment);
     fragmentShaderInfo.entrypoint = "main";
     fragmentShaderInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
     fragmentShaderInfo.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
@@ -238,6 +244,257 @@ bool Window::initializeSquareRendering(void) {
     return true;
 }
 
+bool Window::initializeTexturedQuadRendering(void) {
+    // Load texture using SDL_image
+    const char* texturePath = "../../../assets/floor1.png";
+    SDL_Surface* surface = IMG_Load(texturePath);
+    if (!surface) {
+        spdlog::error("Failed to load texture {}: {}", texturePath, SDL_GetError());
+        return false;
+    }
+
+    // Convert to RGBA32 format for consistent GPU format
+    SDL_Surface* convertedSurface = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_RGBA32);
+    SDL_DestroySurface(surface);
+    if (!convertedSurface) {
+        spdlog::error("Failed to convert surface to RGBA32: {}", SDL_GetError());
+        return false;
+    }
+
+    // Create GPU texture
+    SDL_GPUTextureCreateInfo textureInfo = {};
+    textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
+    textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+    textureInfo.width = static_cast<Uint32>(convertedSurface->w);
+    textureInfo.height = static_cast<Uint32>(convertedSurface->h);
+    textureInfo.layer_count_or_depth = 1;
+    textureInfo.num_levels = 1;
+    textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+
+    texturedQuadTexture = SDL_CreateGPUTexture(gpuDevice, &textureInfo);
+    if (!texturedQuadTexture) {
+        spdlog::error("Failed to create GPU texture: {}", SDL_GetError());
+        SDL_DestroySurface(convertedSurface);
+        return false;
+    }
+
+    // Upload texture data via transfer buffer
+    Uint32 textureDataSize = convertedSurface->w * convertedSurface->h * 4;
+
+    SDL_GPUTransferBufferCreateInfo transferInfo = {};
+    transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    transferInfo.size = textureDataSize;
+
+    SDL_GPUTransferBuffer* textureTransferBuffer =
+        SDL_CreateGPUTransferBuffer(gpuDevice, &transferInfo);
+    if (!textureTransferBuffer) {
+        spdlog::error("Failed to create texture transfer buffer: {}", SDL_GetError());
+        SDL_DestroySurface(convertedSurface);
+        return false;
+    }
+
+    void* textureData = SDL_MapGPUTransferBuffer(gpuDevice, textureTransferBuffer, false);
+    SDL_memcpy(textureData, convertedSurface->pixels, textureDataSize);
+    SDL_UnmapGPUTransferBuffer(gpuDevice, textureTransferBuffer);
+
+    // Upload to GPU texture
+    SDL_GPUCommandBuffer* uploadCmdBuffer = SDL_AcquireGPUCommandBuffer(gpuDevice);
+    SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(uploadCmdBuffer);
+
+    SDL_GPUTextureTransferInfo transferSource = {};
+    transferSource.transfer_buffer = textureTransferBuffer;
+    transferSource.offset = 0;
+    transferSource.pixels_per_row = convertedSurface->w;
+    transferSource.rows_per_layer = convertedSurface->h;
+
+    SDL_GPUTextureRegion textureRegion = {};
+    textureRegion.texture = texturedQuadTexture;
+    textureRegion.x = 0;
+    textureRegion.y = 0;
+    textureRegion.z = 0;
+    textureRegion.w = convertedSurface->w;
+    textureRegion.h = convertedSurface->h;
+    textureRegion.d = 1;
+
+    SDL_UploadToGPUTexture(copyPass, &transferSource, &textureRegion, false);
+    SDL_EndGPUCopyPass(copyPass);
+    SDL_SubmitGPUCommandBuffer(uploadCmdBuffer);
+    SDL_WaitForGPUIdle(gpuDevice);
+    SDL_ReleaseGPUTransferBuffer(gpuDevice, textureTransferBuffer);
+
+    int texWidth = convertedSurface->w;
+    int texHeight = convertedSurface->h;
+    SDL_DestroySurface(convertedSurface);
+
+    // Create sampler
+    SDL_GPUSamplerCreateInfo samplerInfo = {};
+    samplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
+    samplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
+    samplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+    samplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+    samplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+    samplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+
+    texturedQuadSampler = SDL_CreateGPUSampler(gpuDevice, &samplerInfo);
+    if (!texturedQuadSampler) {
+        spdlog::error("Failed to create sampler: {}", SDL_GetError());
+        return false;
+    }
+
+    // Create vertex shader
+    SDL_GPUShaderCreateInfo vertexShaderInfo = {};
+    vertexShaderInfo.code = textured_quad_spirv_vertex;
+    vertexShaderInfo.code_size = sizeof(textured_quad_spirv_vertex);
+    vertexShaderInfo.entrypoint = "main";
+    vertexShaderInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
+    vertexShaderInfo.stage = SDL_GPU_SHADERSTAGE_VERTEX;
+    vertexShaderInfo.num_uniform_buffers = 1;
+    vertexShaderInfo.num_storage_buffers = 0;
+    vertexShaderInfo.num_storage_textures = 0;
+    vertexShaderInfo.num_samplers = 0;
+
+    texturedQuadVertexShader = SDL_CreateGPUShader(gpuDevice, &vertexShaderInfo);
+    if (!texturedQuadVertexShader) {
+        spdlog::error("Failed to create textured quad vertex shader: {}", SDL_GetError());
+        return false;
+    }
+
+    // Create fragment shader - num_samplers = 1 is critical for texture sampling
+    SDL_GPUShaderCreateInfo fragmentShaderInfo = {};
+    fragmentShaderInfo.code = textured_quad_spirv_fragment;
+    fragmentShaderInfo.code_size = sizeof(textured_quad_spirv_fragment);
+    fragmentShaderInfo.entrypoint = "main";
+    fragmentShaderInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
+    fragmentShaderInfo.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+    fragmentShaderInfo.num_uniform_buffers = 0;
+    fragmentShaderInfo.num_storage_buffers = 0;
+    fragmentShaderInfo.num_storage_textures = 0;
+    fragmentShaderInfo.num_samplers = 1;
+
+    texturedQuadFragmentShader = SDL_CreateGPUShader(gpuDevice, &fragmentShaderInfo);
+    if (!texturedQuadFragmentShader) {
+        spdlog::error("Failed to create textured quad fragment shader: {}", SDL_GetError());
+        return false;
+    }
+
+    // Vertex structure: position (float2) + texCoord (float2)
+    struct TexturedVertex {
+        float x, y;
+        float u, v;
+    };
+
+    // Create a 128x128 quad
+    float quadSize = 128.0f;
+    TexturedVertex vertices[6] = {// First triangle (top-left, top-right, bottom-left)
+                                  {0.0f, 0.0f, 0.0f, 0.0f},
+                                  {quadSize, 0.0f, 1.0f, 0.0f},
+                                  {0.0f, quadSize, 0.0f, 1.0f},
+                                  // Second triangle (top-right, bottom-right, bottom-left)
+                                  {quadSize, 0.0f, 1.0f, 0.0f},
+                                  {quadSize, quadSize, 1.0f, 1.0f},
+                                  {0.0f, quadSize, 0.0f, 1.0f}};
+
+    SDL_GPUBufferCreateInfo vertexBufferInfo = {};
+    vertexBufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+    vertexBufferInfo.size = sizeof(vertices);
+
+    texturedQuadVertexBuffer = SDL_CreateGPUBuffer(gpuDevice, &vertexBufferInfo);
+    if (!texturedQuadVertexBuffer) {
+        spdlog::error("Failed to create textured quad vertex buffer: {}", SDL_GetError());
+        return false;
+    }
+
+    // Upload vertex data
+    SDL_GPUTransferBufferCreateInfo vtxTransferInfo = {};
+    vtxTransferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    vtxTransferInfo.size = sizeof(vertices);
+
+    SDL_GPUTransferBuffer* vtxTransferBuffer =
+        SDL_CreateGPUTransferBuffer(gpuDevice, &vtxTransferInfo);
+    void* vtxData = SDL_MapGPUTransferBuffer(gpuDevice, vtxTransferBuffer, false);
+    SDL_memcpy(vtxData, vertices, sizeof(vertices));
+    SDL_UnmapGPUTransferBuffer(gpuDevice, vtxTransferBuffer);
+
+    SDL_GPUCommandBuffer* vtxUploadCmd = SDL_AcquireGPUCommandBuffer(gpuDevice);
+    SDL_GPUCopyPass* vtxCopyPass = SDL_BeginGPUCopyPass(vtxUploadCmd);
+
+    SDL_GPUTransferBufferLocation vtxTransferLoc = {};
+    vtxTransferLoc.transfer_buffer = vtxTransferBuffer;
+    vtxTransferLoc.offset = 0;
+
+    SDL_GPUBufferRegion vtxBufferRegion = {};
+    vtxBufferRegion.buffer = texturedQuadVertexBuffer;
+    vtxBufferRegion.offset = 0;
+    vtxBufferRegion.size = sizeof(vertices);
+
+    SDL_UploadToGPUBuffer(vtxCopyPass, &vtxTransferLoc, &vtxBufferRegion, false);
+    SDL_EndGPUCopyPass(vtxCopyPass);
+    SDL_SubmitGPUCommandBuffer(vtxUploadCmd);
+    SDL_WaitForGPUIdle(gpuDevice);
+    SDL_ReleaseGPUTransferBuffer(gpuDevice, vtxTransferBuffer);
+
+    // Create graphics pipeline
+    SDL_GPUVertexBufferDescription vertexBufferDesc = {};
+    vertexBufferDesc.slot = 0;
+    vertexBufferDesc.pitch = sizeof(TexturedVertex);
+    vertexBufferDesc.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+    vertexBufferDesc.instance_step_rate = 0;
+
+    SDL_GPUVertexAttribute vertexAttributes[2] = {};
+    // Position attribute
+    vertexAttributes[0].location = 0;
+    vertexAttributes[0].buffer_slot = 0;
+    vertexAttributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+    vertexAttributes[0].offset = 0;
+    // TexCoord attribute
+    vertexAttributes[1].location = 1;
+    vertexAttributes[1].buffer_slot = 0;
+    vertexAttributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+    vertexAttributes[1].offset = 8;
+
+    SDL_GPUVertexInputState vertexInputState = {};
+    vertexInputState.vertex_buffer_descriptions = &vertexBufferDesc;
+    vertexInputState.num_vertex_buffers = 1;
+    vertexInputState.vertex_attributes = vertexAttributes;
+    vertexInputState.num_vertex_attributes = 2;
+
+    SDL_GPUColorTargetDescription colorTargetDesc = {};
+    colorTargetDesc.format = SDL_GetGPUSwapchainTextureFormat(gpuDevice, sdlWindow);
+    colorTargetDesc.blend_state.enable_blend = true;
+    colorTargetDesc.blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+    colorTargetDesc.blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+    colorTargetDesc.blend_state.color_blend_op = SDL_GPU_BLENDOP_ADD;
+    colorTargetDesc.blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+    colorTargetDesc.blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ZERO;
+    colorTargetDesc.blend_state.alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+    colorTargetDesc.blend_state.color_write_mask = 0xF;
+
+    SDL_GPURasterizerState rasterizerState = {};
+    rasterizerState.fill_mode = SDL_GPU_FILLMODE_FILL;
+    rasterizerState.cull_mode = SDL_GPU_CULLMODE_NONE;
+    rasterizerState.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+
+    SDL_GPUGraphicsPipelineCreateInfo pipelineInfo = {};
+    pipelineInfo.vertex_shader = texturedQuadVertexShader;
+    pipelineInfo.fragment_shader = texturedQuadFragmentShader;
+    pipelineInfo.vertex_input_state = vertexInputState;
+    pipelineInfo.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    pipelineInfo.rasterizer_state = rasterizerState;
+    pipelineInfo.target_info.num_color_targets = 1;
+    pipelineInfo.target_info.color_target_descriptions = &colorTargetDesc;
+    pipelineInfo.target_info.has_depth_stencil_target = false;
+
+    texturedQuadPipeline = SDL_CreateGPUGraphicsPipeline(gpuDevice, &pipelineInfo);
+    if (!texturedQuadPipeline) {
+        spdlog::error("Failed to create textured quad pipeline: {}", SDL_GetError());
+        return false;
+    }
+
+    spdlog::info("Textured quad rendering initialized successfully (texture: {}x{})", texWidth,
+                 texHeight);
+    return true;
+}
+
 void Window::close(void) {
     // Wait for GPU to finish before cleanup
     SDL_WaitForGPUIdle(gpuDevice);
@@ -258,6 +515,32 @@ void Window::close(void) {
     if (squareFragmentShader) {
         SDL_ReleaseGPUShader(gpuDevice, squareFragmentShader);
         squareFragmentShader = nullptr;
+    }
+
+    // Cleanup textured quad rendering resources
+    if (texturedQuadPipeline) {
+        SDL_ReleaseGPUGraphicsPipeline(gpuDevice, texturedQuadPipeline);
+        texturedQuadPipeline = nullptr;
+    }
+    if (texturedQuadVertexBuffer) {
+        SDL_ReleaseGPUBuffer(gpuDevice, texturedQuadVertexBuffer);
+        texturedQuadVertexBuffer = nullptr;
+    }
+    if (texturedQuadVertexShader) {
+        SDL_ReleaseGPUShader(gpuDevice, texturedQuadVertexShader);
+        texturedQuadVertexShader = nullptr;
+    }
+    if (texturedQuadFragmentShader) {
+        SDL_ReleaseGPUShader(gpuDevice, texturedQuadFragmentShader);
+        texturedQuadFragmentShader = nullptr;
+    }
+    if (texturedQuadTexture) {
+        SDL_ReleaseGPUTexture(gpuDevice, texturedQuadTexture);
+        texturedQuadTexture = nullptr;
+    }
+    if (texturedQuadSampler) {
+        SDL_ReleaseGPUSampler(gpuDevice, texturedQuadSampler);
+        texturedQuadSampler = nullptr;
     }
 
     ImGui_ImplSDLGPU3_Shutdown();
@@ -320,6 +603,9 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
 
         // Render square first (behind ImGui)
         renderSquare(commandBuffer, renderPass);
+
+        // Render textured quad (next to the red square)
+        renderTexturedQuad(commandBuffer, renderPass);
 
         if (drawData && drawData->Valid) {
             ImGui_ImplSDLGPU3_RenderDrawData(drawData, commandBuffer, renderPass);
@@ -391,6 +677,62 @@ void Window::renderSquare(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass
     vertexBinding.buffer = squareVertexBuffer;
     vertexBinding.offset = 0;
     SDL_BindGPUVertexBuffers(renderPass, 0, &vertexBinding, 1);
+
+    // Draw
+    SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
+}
+
+void Window::renderTexturedQuad(SDL_GPUCommandBuffer* commandBuffer,
+                                SDL_GPURenderPass* renderPass) {
+    if (!texturedQuadPipeline || !texturedQuadVertexBuffer || !texturedQuadTexture ||
+        !texturedQuadSampler) {
+        return;
+    }
+
+    // Bind pipeline
+    SDL_BindGPUGraphicsPipeline(renderPass, texturedQuadPipeline);
+
+    // Create MVP matrix (position textured quad offset from red square)
+    glm::mat4 projection =
+        glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1.0f, 1.0f);
+
+    // Position: offset 100 pixels right from center
+    float posX = static_cast<float>(width) / 2.0f + 50.0f;
+    float posY = static_cast<float>(height) / 2.0f - 64.0f;
+
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(posX, posY, 0.0f));
+    glm::mat4 mvp = projection * model;
+
+    SDL_PushGPUVertexUniformData(commandBuffer, 0, &mvp, sizeof(glm::mat4));
+
+    // Set viewport and scissor
+    SDL_GPUViewport viewport = {};
+    viewport.x = 0;
+    viewport.y = 0;
+    viewport.w = static_cast<float>(width);
+    viewport.h = static_cast<float>(height);
+    viewport.min_depth = 0.0f;
+    viewport.max_depth = 1.0f;
+    SDL_SetGPUViewport(renderPass, &viewport);
+
+    SDL_Rect scissor = {};
+    scissor.x = 0;
+    scissor.y = 0;
+    scissor.w = static_cast<int>(width);
+    scissor.h = static_cast<int>(height);
+    SDL_SetGPUScissor(renderPass, &scissor);
+
+    // Bind vertex buffer
+    SDL_GPUBufferBinding vertexBinding = {};
+    vertexBinding.buffer = texturedQuadVertexBuffer;
+    vertexBinding.offset = 0;
+    SDL_BindGPUVertexBuffers(renderPass, 0, &vertexBinding, 1);
+
+    // Bind texture-sampler pair for fragment shader
+    SDL_GPUTextureSamplerBinding textureSamplerBinding = {};
+    textureSamplerBinding.texture = texturedQuadTexture;
+    textureSamplerBinding.sampler = texturedQuadSampler;
+    SDL_BindGPUFragmentSamplers(renderPass, 0, &textureSamplerBinding, 1);
 
     // Draw
     SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);

@@ -20,6 +20,13 @@ compile_shader_to_header(
     SHADER_NAME simple_square
 )
 
+compile_shader_to_header(
+    VERTEX_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/textured_quad.vert.hlsl
+    FRAGMENT_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/textured_quad.frag.hlsl
+    OUTPUT_HEADER ${CMAKE_CURRENT_BINARY_DIR}/include/shaders/textured_quad_shaders.h
+    SHADER_NAME textured_quad
+)
+
 add_library(graphics
     src/window.cpp
     include/backends/imgui_impl_sdl3.cpp

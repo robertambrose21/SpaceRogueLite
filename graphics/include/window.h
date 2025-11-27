@@ -16,11 +16,13 @@ public:
     bool initialize(void);
     bool initializeImgui(void);
     bool initializeSquareRendering(void);
+    bool initializeTexturedQuadRendering(void);
     void close(void);
 
     void update(int64_t timeSinceLastFrame, bool& quit);
     void updateUI(int64_t timeSinceLastFrame, bool& quit);
     void renderSquare(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass);
+    void renderTexturedQuad(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass);
 
 private:
     std::string title;
@@ -35,6 +37,14 @@ private:
     SDL_GPUShader* squareFragmentShader = nullptr;
     SDL_GPUGraphicsPipeline* squarePipeline = nullptr;
     SDL_GPUBuffer* squareVertexBuffer = nullptr;
+
+    // Textured quad rendering resources
+    SDL_GPUShader* texturedQuadVertexShader = nullptr;
+    SDL_GPUShader* texturedQuadFragmentShader = nullptr;
+    SDL_GPUGraphicsPipeline* texturedQuadPipeline = nullptr;
+    SDL_GPUBuffer* texturedQuadVertexBuffer = nullptr;
+    SDL_GPUTexture* texturedQuadTexture = nullptr;
+    SDL_GPUSampler* texturedQuadSampler = nullptr;
 };
 
 }  // namespace SpaceRogueLite
