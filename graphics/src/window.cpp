@@ -68,6 +68,8 @@ bool Window::initialize(void) {
         return false;
     }
 
+    camera = std::make_unique<Camera>(width, height);
+
     SDL_WaitForGPUIdle(gpuDevice);
 
     return true;
@@ -499,6 +501,8 @@ void Window::close(void) {
     // Wait for GPU to finish before cleanup
     SDL_WaitForGPUIdle(gpuDevice);
 
+    camera.reset();
+
     // Cleanup square rendering resources
     if (squarePipeline) {
         SDL_ReleaseGPUGraphicsPipeline(gpuDevice, squarePipeline);
@@ -636,40 +640,26 @@ void Window::renderSquare(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass
     // Bind pipeline first
     SDL_BindGPUGraphicsPipeline(renderPass, squarePipeline);
 
-    // Push uniform data immediately after binding pipeline (before other bindings)
-    // Create orthographic projection matrix using glm
-    // This transforms from pixel coordinates to NDC (-1 to 1)
-    glm::mat4 projection =
-        glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1.0f, 1.0f);
-
     // Calculate position to center the square
     float centerX = static_cast<float>(width) / 2.0f - 32.0f;
     float centerY = static_cast<float>(height) / 2.0f - 32.0f;
 
-    // Translate to center position
+    // Create model matrix for square position
     glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(centerX, centerY, 0.0f));
 
-    // Combine projection and model matrices
-    glm::mat4 mvp = projection * model;
+    // Use camera to calculate MVP
+    glm::mat4 mvp = camera->getViewProjectionMatrix() * model;
 
-    // Push projection matrix as uniform data (must be after pipeline bind, before draw)
+    // Push MVP matrix as uniform data
     SDL_PushGPUVertexUniformData(commandBuffer, 0, &mvp, sizeof(glm::mat4));
 
-    // Set viewport and scissor
-    SDL_GPUViewport viewport = {};
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.w = static_cast<float>(width);
-    viewport.h = static_cast<float>(height);
-    viewport.min_depth = 0.0f;
-    viewport.max_depth = 1.0f;
+    // Set viewport and scissor from camera
+    ViewportData vp = camera->getViewport();
+    SDL_GPUViewport viewport = {vp.x, vp.y, vp.width, vp.height, vp.minDepth, vp.maxDepth};
     SDL_SetGPUViewport(renderPass, &viewport);
 
-    SDL_Rect scissor = {};
-    scissor.x = 0;
-    scissor.y = 0;
-    scissor.w = static_cast<int>(width);
-    scissor.h = static_cast<int>(height);
+    ScissorData sc = camera->getScissor();
+    SDL_Rect scissor = {sc.x, sc.y, sc.width, sc.height};
     SDL_SetGPUScissor(renderPass, &scissor);
 
     // Bind vertex buffer
@@ -692,34 +682,25 @@ void Window::renderTexturedQuad(SDL_GPUCommandBuffer* commandBuffer,
     // Bind pipeline
     SDL_BindGPUGraphicsPipeline(renderPass, texturedQuadPipeline);
 
-    // Create MVP matrix (position textured quad offset from red square)
-    glm::mat4 projection =
-        glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1.0f, 1.0f);
-
     // Position: offset 100 pixels right from center
     float posX = static_cast<float>(width) / 2.0f + 50.0f;
     float posY = static_cast<float>(height) / 2.0f - 64.0f;
 
+    // Create model matrix for quad position
     glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(posX, posY, 0.0f));
-    glm::mat4 mvp = projection * model;
+
+    // Use camera to calculate MVP
+    glm::mat4 mvp = camera->getViewProjectionMatrix() * model;
 
     SDL_PushGPUVertexUniformData(commandBuffer, 0, &mvp, sizeof(glm::mat4));
 
-    // Set viewport and scissor
-    SDL_GPUViewport viewport = {};
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.w = static_cast<float>(width);
-    viewport.h = static_cast<float>(height);
-    viewport.min_depth = 0.0f;
-    viewport.max_depth = 1.0f;
+    // Set viewport and scissor from camera
+    ViewportData vp = camera->getViewport();
+    SDL_GPUViewport viewport = {vp.x, vp.y, vp.width, vp.height, vp.minDepth, vp.maxDepth};
     SDL_SetGPUViewport(renderPass, &viewport);
 
-    SDL_Rect scissor = {};
-    scissor.x = 0;
-    scissor.y = 0;
-    scissor.w = static_cast<int>(width);
-    scissor.h = static_cast<int>(height);
+    ScissorData sc = camera->getScissor();
+    SDL_Rect scissor = {sc.x, sc.y, sc.width, sc.height};
     SDL_SetGPUScissor(renderPass, &scissor);
 
     // Bind vertex buffer

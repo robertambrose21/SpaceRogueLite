@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 #include <memory>
 #include <string>
+#include "camera.h"
 
 namespace SpaceRogueLite {
 
@@ -31,6 +32,8 @@ private:
 
     SDL_Window* sdlWindow = nullptr;
     SDL_GPUDevice* gpuDevice = nullptr;
+
+    std::unique_ptr<Camera> camera;
 
     // Square rendering resources
     SDL_GPUShader* squareVertexShader = nullptr;

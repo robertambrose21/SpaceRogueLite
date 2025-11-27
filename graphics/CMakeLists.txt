@@ -29,6 +29,7 @@ compile_shader_to_header(
 
 add_library(graphics
     src/window.cpp
+    src/camera.cpp
     include/backends/imgui_impl_sdl3.cpp
     include/backends/imgui_impl_sdlgpu3.cpp
 )
@@ -40,6 +41,6 @@ target_include_directories(graphics
         ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
-set_target_properties(graphics PROPERTIES PUBLIC_HEADER "include/window.h")
+set_target_properties(graphics PROPERTIES PUBLIC_HEADER "include/window.h", "include/camera.h")
 install(TARGETS graphics)
 install(DIRECTORY include/backends DESTINATION include)
