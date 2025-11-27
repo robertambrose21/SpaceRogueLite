@@ -19,7 +19,7 @@ class graphicsRecipe(ConanFile):
     default_options = {"shared": False, "fPIC": True}
 
     # Sources are located in the same place as this recipe, copy them to the recipe
-    exports_sources = "CMakeLists.txt", "src/*", "include/*"
+    exports_sources = "CMakeLists.txt", "src/*", "include/*", "shaders/*", "cmake/*"
 
     def requirements(self):
         self.requires("sdl/3.2.20")
@@ -31,6 +31,9 @@ class graphicsRecipe(ConanFile):
         self.requires("imgui/1.92.4", transitive_headers=True)
 
         self.requires("core/1.0.0-prealpha")
+
+    def build_requirements(self):
+        self.tool_requires("sdl_shadercross/main")
 
     def config_options(self):
         if self.settings.os == "Windows":

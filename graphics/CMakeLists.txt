@@ -14,8 +14,8 @@ include(cmake/CompileShaders.cmake)
 
 # Compile shaders at build time
 compile_shader_to_header(
-    VERTEX_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/simple_square.vert
-    FRAGMENT_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/simple_square.frag
+    VERTEX_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/simple_square.vert.hlsl
+    FRAGMENT_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/simple_square.frag.hlsl
     OUTPUT_HEADER ${CMAKE_CURRENT_BINARY_DIR}/include/shaders/simple_square_shaders.h
     SHADER_NAME simple_square
 )
