@@ -5,7 +5,7 @@
 
 #include <actorspawner.h>
 #include <components.h>
-#include <entityrenderlayer.h>
+#include <entityrendersystem.h>
 #include <game.h>
 #include <rendercomponents.h>
 #include <tileatlas.h>
@@ -61,7 +61,7 @@ int main() {
         }
         tileRenderer->setTileMap(std::move(tileMap));
 
-        window.createRenderLayer<SpaceRogueLite::EntityRenderLayer>(registry);
+        window.createRenderLayer<SpaceRogueLite::EntityRenderSystem>(registry);
 
         // Create a test entity with a spaceworm sprite
         auto testEntity = registry.create();

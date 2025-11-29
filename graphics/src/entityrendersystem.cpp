@@ -1,4 +1,4 @@
-#include "entityrenderlayer.h"
+#include "entityrendersystem.h"
 
 #include <SDL3_image/SDL_image.h>
 #include <spdlog/spdlog.h>
@@ -12,12 +12,12 @@
 
 namespace SpaceRogueLite {
 
-EntityRenderLayer::EntityRenderLayer(entt::registry& registry)
-    : RenderLayer("EntityRenderer"), registry(registry) {}
+EntityRenderSystem::EntityRenderSystem(entt::registry& registry)
+    : RenderLayer("EntityRenderSystem"), registry(registry) {}
 
-EntityRenderLayer::~EntityRenderLayer() { shutdown(); }
+EntityRenderSystem::~EntityRenderSystem() { shutdown(); }
 
-bool EntityRenderLayer::initialize() {
+bool EntityRenderSystem::initialize() {
     if (!createTexturedPipeline()) {
         return false;
     }
@@ -28,11 +28,11 @@ bool EntityRenderLayer::initialize() {
         return false;
     }
 
-    spdlog::debug("EntityRenderLayer initialized");
+    spdlog::debug("EntityRenderSystem initialized");
     return true;
 }
 
-void EntityRenderLayer::shutdown() {
+void EntityRenderSystem::shutdown() {
     SDL_WaitForGPUIdle(device);
 
     // Release all cached textures
@@ -83,7 +83,7 @@ void EntityRenderLayer::shutdown() {
     }
 }
 
-void EntityRenderLayer::prepareFrame(SDL_GPUCommandBuffer* commandBuffer) {
+void EntityRenderSystem::prepareFrame(SDL_GPUCommandBuffer* commandBuffer) {
     auto texturedView = registry.view<Position, Renderable>();
     for (auto [_, pos, renderable] : texturedView.each()) {
         if (textureCache.find(renderable.texturePath) == textureCache.end()) {
@@ -92,13 +92,13 @@ void EntityRenderLayer::prepareFrame(SDL_GPUCommandBuffer* commandBuffer) {
     }
 }
 
-void EntityRenderLayer::render(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass,
+void EntityRenderSystem::render(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass,
                                const Camera& camera) {
     renderTexturedEntities(commandBuffer, renderPass, camera);
     renderUntexturedEntities(commandBuffer, renderPass, camera);
 }
 
-bool EntityRenderLayer::createTexturedPipeline() {
+bool EntityRenderSystem::createTexturedPipeline() {
     // Vertex shader
     SDL_GPUShaderCreateInfo vertexInfo = {};
     vertexInfo.code = textured_quad_spirv_vertex;
@@ -194,7 +194,7 @@ bool EntityRenderLayer::createTexturedPipeline() {
     return true;
 }
 
-bool EntityRenderLayer::createUntexturedPipeline() {
+bool EntityRenderSystem::createUntexturedPipeline() {
     SDL_GPUShaderCreateInfo vertexInfo = {};
     vertexInfo.code = colored_quad_spirv_vertex;
     vertexInfo.code_size = sizeof(colored_quad_spirv_vertex);
@@ -283,7 +283,7 @@ bool EntityRenderLayer::createUntexturedPipeline() {
     return true;
 }
 
-bool EntityRenderLayer::createVertexBuffers() {
+bool EntityRenderSystem::createVertexBuffers() {
     TexturedVertex texturedVertices[6] = {
         {{0.0f, 0.0f}, {0.0f, 0.0f}}, {{1.0f, 0.0f}, {1.0f, 0.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f}},
         {{1.0f, 0.0f}, {1.0f, 0.0f}}, {{1.0f, 1.0f}, {1.0f, 1.0f}}, {{0.0f, 1.0f}, {0.0f, 1.0f}},
@@ -364,7 +364,7 @@ bool EntityRenderLayer::createVertexBuffers() {
     return true;
 }
 
-EntityRenderLayer::EntityTexture* EntityRenderLayer::loadTexture(const std::string& path) {
+EntityRenderSystem::EntityTexture* EntityRenderSystem::loadTexture(const std::string& path) {
     SDL_Surface* surface = IMG_Load(path.c_str());
     if (!surface) {
         spdlog::error("Failed to load entity texture {}: {}", path, SDL_GetError());
@@ -465,7 +465,7 @@ EntityRenderLayer::EntityTexture* EntityRenderLayer::loadTexture(const std::stri
     return &it->second;
 }
 
-void EntityRenderLayer::renderTexturedEntities(SDL_GPUCommandBuffer* commandBuffer,
+void EntityRenderSystem::renderTexturedEntities(SDL_GPUCommandBuffer* commandBuffer,
                                                SDL_GPURenderPass* renderPass,
                                                const Camera& camera) {
     auto view = registry.view<Position, Renderable>();
@@ -506,7 +506,7 @@ void EntityRenderLayer::renderTexturedEntities(SDL_GPUCommandBuffer* commandBuff
     }
 }
 
-void EntityRenderLayer::renderUntexturedEntities(SDL_GPUCommandBuffer* commandBuffer,
+void EntityRenderSystem::renderUntexturedEntities(SDL_GPUCommandBuffer* commandBuffer,
                                                  SDL_GPURenderPass* renderPass,
                                                  const Camera& camera) {
     auto view = registry.view<Position, RenderableUntextured>();

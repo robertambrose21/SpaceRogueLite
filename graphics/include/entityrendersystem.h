@@ -11,13 +11,13 @@
 
 namespace SpaceRogueLite {
 
-class EntityRenderLayer : public RenderLayer {
+class EntityRenderSystem : public RenderLayer {
 public:
-    explicit EntityRenderLayer(entt::registry& registry);
-    EntityRenderLayer(const EntityRenderLayer&) = delete;
-    EntityRenderLayer& operator=(const EntityRenderLayer&) = delete;
+    explicit EntityRenderSystem(entt::registry& registry);
+    EntityRenderSystem(const EntityRenderSystem&) = delete;
+    EntityRenderSystem& operator=(const EntityRenderSystem&) = delete;
 
-    ~EntityRenderLayer() override;
+    ~EntityRenderSystem() override;
 
     bool initialize() override;
     void shutdown();

@@ -40,7 +40,9 @@ add_library(graphics
     src/tilemap.cpp
     src/tileatlas.cpp
     src/tilerenderer.cpp
-    src/entityrenderlayer.cpp
+    src/entityrendersystem.cpp
+    include/tiletypes.h
+    include/rendercomponents.h
     include/backends/imgui_impl_sdl3.cpp
     include/backends/imgui_impl_sdlgpu3.cpp
 )
@@ -52,15 +54,5 @@ target_include_directories(graphics
         ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
-set_target_properties(graphics PROPERTIES PUBLIC_HEADER
-    "include/window.h",
-    "include/camera.h",
-    "include/tiletypes.h",
-    "include/tilemap.h",
-    "include/tileatlas.h",
-    "include/tilerenderer.h",
-    "include/entityrenderlayer.h",
-    "include/rendercomponents.h"
-)
 install(TARGETS graphics)
 install(DIRECTORY include/backends DESTINATION include)
