@@ -14,13 +14,13 @@ namespace SpaceRogueLite {
 
 class TileRenderer : public RenderLayer {
 public:
-    explicit TileRenderer(SDL_GPUDevice* device, SDL_Window* window);
+    explicit TileRenderer();
     TileRenderer(const TileRenderer&) = delete;
     TileRenderer& operator=(const TileRenderer&) = delete;
 
     ~TileRenderer() override;
 
-    bool initialize();
+    bool initialize() override;
     void shutdown();
 
     void setTileMap(std::unique_ptr<TileMap> tileMap);
@@ -39,9 +39,6 @@ public:
     void invalidateCache();
 
 private:
-    SDL_GPUDevice* device;
-    SDL_Window* window;
-
     std::unique_ptr<TileAtlas> atlas = nullptr;
     std::unique_ptr<TileMap> tileMap = nullptr;
 

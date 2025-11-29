@@ -13,13 +13,13 @@ namespace SpaceRogueLite {
 
 class EntityRenderLayer : public RenderLayer {
 public:
-    explicit EntityRenderLayer(SDL_GPUDevice* device, SDL_Window* window, entt::registry& registry);
+    explicit EntityRenderLayer(entt::registry& registry);
     EntityRenderLayer(const EntityRenderLayer&) = delete;
     EntityRenderLayer& operator=(const EntityRenderLayer&) = delete;
 
     ~EntityRenderLayer() override;
 
-    bool initialize();
+    bool initialize() override;
     void shutdown();
 
     void prepareFrame(SDL_GPUCommandBuffer* commandBuffer) override;
@@ -30,8 +30,6 @@ public:
     int32_t getOrder() const override { return LayerOrder::ENTITIES; }
 
 private:
-    SDL_GPUDevice* device;
-    SDL_Window* window;
     entt::registry& registry;
 
     struct EntityTexture {

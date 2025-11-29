@@ -21,7 +21,21 @@ public:
     bool initializeImgui(void);
     void close(void);
 
-    void addRenderLayer(std::unique_ptr<RenderLayer> layer);
+    template <typename T, typename... Args>
+    T* createRenderLayer(Args&&... args) {
+        auto layer = std::make_unique<T>(std::forward<Args>(args)...);
+
+        if (!layer->doInitialize(gpuDevice, sdlWindow)) {
+            spdlog::error("Failed to initialize render layer {}", layer->getName());
+            return nullptr;
+        }
+
+        auto layerPtr = layer.get();
+        renderLayers.push_back(std::move(layer));
+        layersSorted = false;
+
+        return layerPtr;
+    }
 
     template <typename T>
     T* getRenderLayer() {
@@ -32,9 +46,6 @@ public:
         }
         return nullptr;
     }
-
-    SDL_GPUDevice* getGPUDevice() { return gpuDevice; }
-    SDL_Window* getSDLWindow() { return sdlWindow; }
 
     void update(int64_t timeSinceLastFrame, bool& quit);
     void updateUI(int64_t timeSinceLastFrame, bool& quit);

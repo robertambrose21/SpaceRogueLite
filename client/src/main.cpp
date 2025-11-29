@@ -47,13 +47,7 @@ int main() {
         SpaceRogueLite::Window window("SpaceRogueLite Client", 1920, 1080);
         window.initialize();
 
-        // Create tile renderer
-        auto tileRenderer = std::make_unique<SpaceRogueLite::TileRenderer>(window.getGPUDevice(),
-                                                                           window.getSDLWindow());
-        if (!tileRenderer->initialize()) {
-            spdlog::error("Failed to initialize tile renderer");
-            return 1;
-        }
+        auto tileRenderer = window.createRenderLayer<SpaceRogueLite::TileRenderer>();
 
         tileRenderer->loadAtlasTiles(
             {"../../../assets/floor1.png", "../../../assets/rusty_metal.png"});
@@ -66,16 +60,8 @@ int main() {
             }
         }
         tileRenderer->setTileMap(std::move(tileMap));
-        window.addRenderLayer(std::move(tileRenderer));
 
-        // Create entity renderer
-        auto entityRenderer = std::make_unique<SpaceRogueLite::EntityRenderLayer>(
-            window.getGPUDevice(), window.getSDLWindow(), registry);
-        if (!entityRenderer->initialize()) {
-            spdlog::error("Failed to initialize entity renderer");
-            return 1;
-        }
-        window.addRenderLayer(std::move(entityRenderer));
+        window.createRenderLayer<SpaceRogueLite::EntityRenderLayer>(registry);
 
         // Create a test entity with a spaceworm sprite
         auto testEntity = registry.create();

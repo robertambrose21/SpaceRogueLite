@@ -12,9 +12,8 @@
 
 namespace SpaceRogueLite {
 
-EntityRenderLayer::EntityRenderLayer(SDL_GPUDevice* device, SDL_Window* window,
-                                     entt::registry& registry)
-    : device(device), window(window), registry(registry) {}
+EntityRenderLayer::EntityRenderLayer(entt::registry& registry)
+    : RenderLayer("EntityRenderer"), registry(registry) {}
 
 EntityRenderLayer::~EntityRenderLayer() { shutdown(); }
 

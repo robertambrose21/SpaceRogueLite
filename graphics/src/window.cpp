@@ -81,11 +81,6 @@ bool Window::initializeImgui(void) {
     return true;
 }
 
-void Window::addRenderLayer(std::unique_ptr<RenderLayer> layer) {
-    renderLayers.push_back(std::move(layer));
-    layersSorted = false;
-}
-
 void Window::sortLayers() {
     std::sort(renderLayers.begin(), renderLayers.end(),
               [](const auto& a, const auto& b) { return a->getOrder() < b->getOrder(); });

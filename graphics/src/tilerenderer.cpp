@@ -8,8 +8,7 @@
 
 namespace SpaceRogueLite {
 
-TileRenderer::TileRenderer(SDL_GPUDevice* device, SDL_Window* window)
-    : device(device), window(window) {}
+TileRenderer::TileRenderer() : RenderLayer("TileRenderer") {}
 
 TileRenderer::~TileRenderer() { shutdown(); }
 
