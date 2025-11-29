@@ -5,12 +5,12 @@
 
 #include <actorspawner.h>
 #include <components.h>
-#include <entityrendersystem.h>
+#include <renderlayers/entities/entityrendersystem.h>
 #include <game.h>
 #include <rendercomponents.h>
-#include <tileatlas.h>
-#include <tilemap.h>
-#include <tilerenderer.h>
+#include <renderlayers/tiles/tileatlas.h>
+#include <renderlayers/tiles/tilemap.h>
+#include <renderlayers/tiles/tilerenderer.h>
 #include <window.h>
 #include "message.h"
 #include "messagefactory.h"

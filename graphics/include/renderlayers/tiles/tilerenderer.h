@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "camera.h"
-#include "renderlayer.h"
+#include "renderlayers/renderlayer.h"
 #include "tileatlas.h"
 #include "tilemap.h"
 

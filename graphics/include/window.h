@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 #include "camera.h"
-#include "renderlayer.h"
+#include "renderlayers/renderlayer.h"
 
 namespace SpaceRogueLite {
 
