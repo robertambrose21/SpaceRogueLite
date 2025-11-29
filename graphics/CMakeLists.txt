@@ -14,13 +14,6 @@ include(cmake/CompileShaders.cmake)
 
 # Compile shaders at build time
 compile_shader_to_header(
-    VERTEX_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/simple_square.vert.hlsl
-    FRAGMENT_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/simple_square.frag.hlsl
-    OUTPUT_HEADER ${CMAKE_CURRENT_BINARY_DIR}/include/shaders/simple_square_shaders.h
-    SHADER_NAME simple_square
-)
-
-compile_shader_to_header(
     VERTEX_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/textured_quad.vert.hlsl
     FRAGMENT_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/textured_quad.frag.hlsl
     OUTPUT_HEADER ${CMAKE_CURRENT_BINARY_DIR}/include/shaders/textured_quad_shaders.h
@@ -35,7 +28,7 @@ compile_shader_to_header(
 )
 
 compile_shader_to_header(
-    VERTEX_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/simple_square.vert.hlsl
+    VERTEX_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/colored_quad.vert.hlsl
     FRAGMENT_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/colored_quad.frag.hlsl
     OUTPUT_HEADER ${CMAKE_CURRENT_BINARY_DIR}/include/shaders/colored_quad_shaders.h
     SHADER_NAME colored_quad

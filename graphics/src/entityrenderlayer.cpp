@@ -8,7 +8,6 @@
 #include "components.h"
 #include "rendercomponents.h"
 #include "shaders/colored_quad_shaders.h"
-#include "shaders/simple_square_shaders.h"
 #include "shaders/textured_quad_shaders.h"
 
 namespace SpaceRogueLite {
@@ -198,8 +197,8 @@ bool EntityRenderLayer::createTexturedPipeline() {
 
 bool EntityRenderLayer::createUntexturedPipeline() {
     SDL_GPUShaderCreateInfo vertexInfo = {};
-    vertexInfo.code = simple_square_spirv_vertex;
-    vertexInfo.code_size = sizeof(simple_square_spirv_vertex);
+    vertexInfo.code = colored_quad_spirv_vertex;
+    vertexInfo.code_size = sizeof(colored_quad_spirv_vertex);
     vertexInfo.entrypoint = "main";
     vertexInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
     vertexInfo.stage = SDL_GPU_SHADERSTAGE_VERTEX;
