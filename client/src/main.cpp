@@ -79,7 +79,7 @@ int main() {
 
         // Create a test entity with a spaceworm sprite
         auto testEntity = registry.create();
-        registry.emplace<Position>(testEntity, 100, 100);
+        registry.emplace<SpaceRogueLite::Position>(testEntity, 100, 100);
         registry.emplace<SpaceRogueLite::Renderable>(testEntity, glm::vec2(64.0f, 64.0f),
                                                      glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                                                      "../../../assets/spaceworm2.png");

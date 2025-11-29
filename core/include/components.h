@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+namespace SpaceRogueLite {
+
 // COMMON
 typedef glm::ivec2 Position;
 
@@ -12,3 +14,5 @@ struct Health {
     int max;
 };
 typedef uint32_t ExternalId;
+
+}  // namespace SpaceRogueLite
