@@ -33,7 +33,7 @@ class graphicsRecipe(ConanFile):
         self.requires("core/1.0.0-prealpha")
 
     def build_requirements(self):
-        self.tool_requires("sdl_shadercross/main")
+        self.tool_requires("sdl_shadercross/3e572c3219ea438bff849cebea34f3aad7e1859b")
 
     def config_options(self):
         if self.settings.os == "Windows":

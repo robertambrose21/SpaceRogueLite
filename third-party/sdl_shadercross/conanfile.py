@@ -8,7 +8,8 @@ import glob
 
 class SDLShadercrossConan(ConanFile):
     name = "sdl_shadercross"
-    version = "main"
+    # Unfortunately, SDL_shadercross has no tags/branches - pin to a commit hash instead!
+    version = "3e572c3219ea438bff849cebea34f3aad7e1859b"
     license = "Zlib"
     url = "https://github.com/libsdl-org/SDL_shadercross"
     description = "Shader translation library for SDL's GPU API"
@@ -27,8 +28,7 @@ class SDLShadercrossConan(ConanFile):
         git.clone("https://github.com/libsdl-org/SDL_shadercross.git",
                   target=str(self.source_folder),
                   args=["--recurse-submodules"])
-        # Unfortunately, SDL_shadercross has no tags/branches - pin to a commit hash instead!
-        git.checkout("3e572c3219ea438bff849cebea34f3aad7e1859b")
+        git.checkout(self.version)
 
     def configure(self):
         # Disable OpenGLES to avoid missing GLES headers issue
