@@ -68,6 +68,11 @@ bool Window::initialize(void) {
         return false;
     }
 
+    if (!initializeTileRendering()) {
+        spdlog::critical("Could not initialize tile rendering");
+        return false;
+    }
+
     camera = std::make_unique<Camera>(width, height);
 
     SDL_WaitForGPUIdle(gpuDevice);
@@ -300,8 +305,8 @@ bool Window::initializeTexturedQuadRendering(void) {
     SDL_UnmapGPUTransferBuffer(gpuDevice, textureTransferBuffer);
 
     // Upload to GPU texture
-    SDL_GPUCommandBuffer* uploadCmdBuffer = SDL_AcquireGPUCommandBuffer(gpuDevice);
-    SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(uploadCmdBuffer);
+    SDL_GPUCommandBuffer* uploadCommandBuffer = SDL_AcquireGPUCommandBuffer(gpuDevice);
+    SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(uploadCommandBuffer);
 
     SDL_GPUTextureTransferInfo transferSource = {};
     transferSource.transfer_buffer = textureTransferBuffer;
@@ -320,7 +325,7 @@ bool Window::initializeTexturedQuadRendering(void) {
 
     SDL_UploadToGPUTexture(copyPass, &transferSource, &textureRegion, false);
     SDL_EndGPUCopyPass(copyPass);
-    SDL_SubmitGPUCommandBuffer(uploadCmdBuffer);
+    SDL_SubmitGPUCommandBuffer(uploadCommandBuffer);
     SDL_WaitForGPUIdle(gpuDevice);
     SDL_ReleaseGPUTransferBuffer(gpuDevice, textureTransferBuffer);
 
@@ -497,11 +502,26 @@ bool Window::initializeTexturedQuadRendering(void) {
     return true;
 }
 
+bool Window::initializeTileRendering(void) {
+    tileRenderer = std::make_unique<TileRenderer>(gpuDevice, sdlWindow);
+    if (!tileRenderer->initialize()) {
+        spdlog::error("Failed to initialize tile renderer");
+        return false;
+    }
+
+    spdlog::info("Tile rendering system initialized");
+    return true;
+}
+
+TileRenderer* Window::getTileRenderer() { return tileRenderer.get(); }
+
 void Window::close(void) {
     // Wait for GPU to finish before cleanup
     SDL_WaitForGPUIdle(gpuDevice);
 
     camera.reset();
+
+    tileRenderer.reset();
 
     // Cleanup square rendering resources
     if (squarePipeline) {
@@ -584,6 +604,10 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
         ImGui_ImplSDLGPU3_PrepareDrawData(drawData, commandBuffer);
     }
 
+    if (tileRenderer) {
+        tileRenderer->prepareFrame(commandBuffer);
+    }
+
     SDL_GPUTexture* swapchainTexture = nullptr;
     if (!SDL_WaitAndAcquireGPUSwapchainTexture(commandBuffer, sdlWindow, &swapchainTexture, nullptr,
                                                nullptr)) {
@@ -605,7 +629,12 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
         SDL_GPURenderPass* renderPass =
             SDL_BeginGPURenderPass(commandBuffer, &colorTarget, 1, nullptr);
 
-        // Render square first (behind ImGui)
+        // Render tiles first (background layer)
+        if (tileRenderer) {
+            tileRenderer->render(commandBuffer, renderPass, *camera);
+        }
+
+        // Render square (behind ImGui)
         renderSquare(commandBuffer, renderPass);
 
         // Render textured quad (next to the red square)

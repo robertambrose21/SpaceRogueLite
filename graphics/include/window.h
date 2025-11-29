@@ -6,6 +6,9 @@
 #include <memory>
 #include <string>
 #include "camera.h"
+#include "tileatlas.h"
+#include "tilemap.h"
+#include "tilerenderer.h"
 
 namespace SpaceRogueLite {
 
@@ -18,7 +21,10 @@ public:
     bool initializeImgui(void);
     bool initializeSquareRendering(void);
     bool initializeTexturedQuadRendering(void);
+    bool initializeTileRendering(void);
     void close(void);
+
+    TileRenderer* getTileRenderer();
 
     void update(int64_t timeSinceLastFrame, bool& quit);
     void updateUI(int64_t timeSinceLastFrame, bool& quit);
@@ -48,6 +54,8 @@ private:
     SDL_GPUBuffer* texturedQuadVertexBuffer = nullptr;
     SDL_GPUTexture* texturedQuadTexture = nullptr;
     SDL_GPUSampler* texturedQuadSampler = nullptr;
+
+    std::unique_ptr<TileRenderer> tileRenderer;
 };
 
 }  // namespace SpaceRogueLite

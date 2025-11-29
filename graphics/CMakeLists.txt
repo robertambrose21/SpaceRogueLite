@@ -27,9 +27,19 @@ compile_shader_to_header(
     SHADER_NAME textured_quad
 )
 
+compile_shader_to_header(
+    VERTEX_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tilecompose.vert.hlsl
+    FRAGMENT_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tilecompose.frag.hlsl
+    OUTPUT_HEADER ${CMAKE_CURRENT_BINARY_DIR}/include/shaders/tilecompose_shaders.h
+    SHADER_NAME tilecompose
+)
+
 add_library(graphics
     src/window.cpp
     src/camera.cpp
+    src/tilemap.cpp
+    src/tileatlas.cpp
+    src/tilerenderer.cpp
     include/backends/imgui_impl_sdl3.cpp
     include/backends/imgui_impl_sdlgpu3.cpp
 )
@@ -41,6 +51,13 @@ target_include_directories(graphics
         ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
-set_target_properties(graphics PROPERTIES PUBLIC_HEADER "include/window.h", "include/camera.h")
+set_target_properties(graphics PROPERTIES PUBLIC_HEADER 
+    "include/window.h", 
+    "include/camera.h", 
+    "include/tiletypes.h", 
+    "include/tilemap.h", 
+    "include/tileatlas.h", 
+    "include/tilerenderer.h"
+)
 install(TARGETS graphics)
 install(DIRECTORY include/backends DESTINATION include)
