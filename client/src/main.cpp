@@ -4,7 +4,10 @@
 #include <entt/entt.hpp>
 
 #include <actorspawner.h>
+#include <components.h>
+#include <entityrenderlayer.h>
 #include <game.h>
+#include <rendercomponents.h>
 #include <tileatlas.h>
 #include <tilemap.h>
 #include <tilerenderer.h>
@@ -64,6 +67,22 @@ int main() {
         }
         tileRenderer->setTileMap(std::move(tileMap));
         window.addRenderLayer(std::move(tileRenderer));
+
+        // Create entity renderer
+        auto entityRenderer = std::make_unique<SpaceRogueLite::EntityRenderLayer>(
+            window.getGPUDevice(), window.getSDLWindow(), registry);
+        if (!entityRenderer->initialize()) {
+            spdlog::error("Failed to initialize entity renderer");
+            return 1;
+        }
+        window.addRenderLayer(std::move(entityRenderer));
+
+        // Create a test entity with a spaceworm sprite
+        auto testEntity = registry.create();
+        registry.emplace<Position>(testEntity, 100, 100);
+        registry.emplace<SpaceRogueLite::Renderable>(testEntity, glm::vec2(64.0f, 64.0f),
+                                                     glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                                                     "../../../assets/spaceworm2.png");
 
         game.attachWorker(
             {1, "ClientUpdateLoop", [&client](int64_t timeSinceLastFrame, bool& quit) {
