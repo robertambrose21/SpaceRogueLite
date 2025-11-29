@@ -68,11 +68,6 @@ bool Window::initialize(void) {
         return false;
     }
 
-    if (!initializeTileRendering()) {
-        spdlog::critical("Could not initialize tile rendering");
-        return false;
-    }
-
     camera = std::make_unique<Camera>(width, height);
 
     SDL_WaitForGPUIdle(gpuDevice);
@@ -502,18 +497,16 @@ bool Window::initializeTexturedQuadRendering(void) {
     return true;
 }
 
-bool Window::initializeTileRendering(void) {
-    tileRenderer = std::make_unique<TileRenderer>(gpuDevice, sdlWindow);
-    if (!tileRenderer->initialize()) {
-        spdlog::error("Failed to initialize tile renderer");
-        return false;
-    }
-
-    spdlog::info("Tile rendering system initialized");
-    return true;
+void Window::addRenderLayer(std::unique_ptr<RenderLayer> layer) {
+    renderLayers.push_back(std::move(layer));
+    layersSorted = false;
 }
 
-TileRenderer* Window::getTileRenderer() { return tileRenderer.get(); }
+void Window::sortLayers() {
+    std::sort(renderLayers.begin(), renderLayers.end(),
+              [](const auto& a, const auto& b) { return a->getOrder() < b->getOrder(); });
+    layersSorted = true;
+}
 
 void Window::close(void) {
     // Wait for GPU to finish before cleanup
@@ -521,7 +514,7 @@ void Window::close(void) {
 
     camera.reset();
 
-    tileRenderer.reset();
+    renderLayers.clear();
 
     // Cleanup square rendering resources
     if (squarePipeline) {
@@ -604,8 +597,11 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
         ImGui_ImplSDLGPU3_PrepareDrawData(drawData, commandBuffer);
     }
 
-    if (tileRenderer) {
-        tileRenderer->prepareFrame(commandBuffer);
+    if (!layersSorted) {
+        sortLayers();
+    }
+    for (auto& layer : renderLayers) {
+        layer->prepareFrame(commandBuffer);
     }
 
     SDL_GPUTexture* swapchainTexture = nullptr;
@@ -625,13 +621,13 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
         colorTarget.clear_color.g = 0.0f;
         colorTarget.clear_color.b = 0.0f;
         colorTarget.clear_color.a = 1.0f;
+        // colorTarget.cycle = true; // TODO: Read into this more
 
         SDL_GPURenderPass* renderPass =
             SDL_BeginGPURenderPass(commandBuffer, &colorTarget, 1, nullptr);
 
-        // Render tiles first (background layer)
-        if (tileRenderer) {
-            tileRenderer->render(commandBuffer, renderPass, *camera);
+        for (auto& layer : renderLayers) {
+            layer->render(commandBuffer, renderPass, *camera);
         }
 
         // Render square (behind ImGui)

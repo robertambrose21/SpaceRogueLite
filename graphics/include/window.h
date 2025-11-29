@@ -3,12 +3,12 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <spdlog/spdlog.h>
+#include <algorithm>
 #include <memory>
 #include <string>
+#include <vector>
 #include "camera.h"
-#include "tileatlas.h"
-#include "tilemap.h"
-#include "tilerenderer.h"
+#include "renderlayer.h"
 
 namespace SpaceRogueLite {
 
@@ -21,10 +21,22 @@ public:
     bool initializeImgui(void);
     bool initializeSquareRendering(void);
     bool initializeTexturedQuadRendering(void);
-    bool initializeTileRendering(void);
     void close(void);
 
-    TileRenderer* getTileRenderer();
+    void addRenderLayer(std::unique_ptr<RenderLayer> layer);
+
+    template <typename T>
+    T* getRenderLayer() {
+        for (auto& layer : renderLayers) {
+            if (auto* ptr = dynamic_cast<T*>(layer.get())) {
+                return ptr;
+            }
+        }
+        return nullptr;
+    }
+
+    SDL_GPUDevice* getGPUDevice() { return gpuDevice; }
+    SDL_Window* getSDLWindow() { return sdlWindow; }
 
     void update(int64_t timeSinceLastFrame, bool& quit);
     void updateUI(int64_t timeSinceLastFrame, bool& quit);
@@ -55,7 +67,10 @@ private:
     SDL_GPUTexture* texturedQuadTexture = nullptr;
     SDL_GPUSampler* texturedQuadSampler = nullptr;
 
-    std::unique_ptr<TileRenderer> tileRenderer;
+    std::vector<std::unique_ptr<RenderLayer>> renderLayers;
+    bool layersSorted = false;
+
+    void sortLayers();
 };
 
 }  // namespace SpaceRogueLite

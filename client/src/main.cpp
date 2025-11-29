@@ -44,8 +44,14 @@ int main() {
         SpaceRogueLite::Window window("SpaceRogueLite Client", 1920, 1080);
         window.initialize();
 
-        // Test tile rendering
-        auto tileRenderer = window.getTileRenderer();
+        // Create tile renderer
+        auto tileRenderer = std::make_unique<SpaceRogueLite::TileRenderer>(window.getGPUDevice(),
+                                                                           window.getSDLWindow());
+        if (!tileRenderer->initialize()) {
+            spdlog::error("Failed to initialize tile renderer");
+            return 1;
+        }
+
         tileRenderer->loadAtlasTiles(
             {"../../../assets/floor1.png", "../../../assets/rusty_metal.png"});
 
@@ -56,8 +62,8 @@ int main() {
                 tileMap->setTile(x, y, (x + y) % 2 == 0 ? 1 : 2);
             }
         }
-
         tileRenderer->setTileMap(std::move(tileMap));
+        window.addRenderLayer(std::move(tileRenderer));
 
         game.attachWorker(
             {1, "ClientUpdateLoop", [&client](int64_t timeSinceLastFrame, bool& quit) {

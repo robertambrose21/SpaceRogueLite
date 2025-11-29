@@ -6,18 +6,19 @@
 #include <memory>
 
 #include "camera.h"
+#include "renderlayer.h"
 #include "tileatlas.h"
 #include "tilemap.h"
 
 namespace SpaceRogueLite {
 
-class TileRenderer {
+class TileRenderer : public RenderLayer {
 public:
     explicit TileRenderer(SDL_GPUDevice* device, SDL_Window* window);
     TileRenderer(const TileRenderer&) = delete;
     TileRenderer& operator=(const TileRenderer&) = delete;
 
-    ~TileRenderer();
+    ~TileRenderer() override;
 
     bool initialize();
     void shutdown();
@@ -28,10 +29,12 @@ public:
     TileId loadAtlasTile(const std::string& path);
     std::map<std::string, TileId> loadAtlasTiles(const std::vector<std::string>& paths);
 
-    void prepareFrame(SDL_GPUCommandBuffer* commandBuffer);
+    void prepareFrame(SDL_GPUCommandBuffer* commandBuffer) override;
 
     void render(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass,
-                const Camera& camera);
+                const Camera& camera) override;
+
+    int32_t getOrder() const override { return LayerOrder::TILES; }
 
     void invalidateCache();
 
