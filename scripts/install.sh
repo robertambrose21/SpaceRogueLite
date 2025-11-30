@@ -52,7 +52,7 @@ for DIR in "$THIRD_PARTY_DIR"/*/; do
         conan install . --build=missing -s build_type="$BUILD_TYPE"
 
         echo "Running conan create..."
-        conan create . -s build_type="$BUILD_TYPE"
+        conan create . -s build_type="$BUILD_TYPE" --build=missing
 
         # Go back to the previous directory
         popd > /dev/null

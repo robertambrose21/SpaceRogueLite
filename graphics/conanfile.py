@@ -44,8 +44,16 @@ class graphicsRecipe(ConanFile):
             self.options.rm_safe("fPIC")
         # Disable OpenGLES to avoid missing GLES headers issue
         self.options["sdl"].opengles = False
-        # Disable Wayland to avoid libdecor linking issues
-        self.options["sdl"].wayland = False
+
+        # Auto-detect Wayland support based on libdecor availability
+        if self.settings.os == "Linux":
+            from conan.tools.gnu import PkgConfig
+            try:
+                PkgConfig(self, "libdecor-0")
+                self.output.info("libdecor detected - enabling Wayland support")
+            except Exception:
+                self.output.warning("libdecor not found - disabling Wayland to avoid build failure")
+                self.options["sdl"].wayland = False
 
     def layout(self):
         cmake_layout(self)
@@ -93,3 +101,13 @@ class graphicsRecipe(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["graphics"]
+
+        # Add libdecor system library for consumers when Wayland is enabled
+        if self.settings.os == "Linux":
+            from conan.tools.gnu import PkgConfig
+            try:
+                pkg = PkgConfig(self, "libdecor-0")
+                self.cpp_info.system_libs.extend(["decor-0"])
+                self.output.info("Adding libdecor system library for consumers")
+            except Exception:
+                pass  # libdecor not available, Wayland was disabled
