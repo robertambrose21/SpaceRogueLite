@@ -5,9 +5,9 @@
 
 #include <actorspawner.h>
 #include <components.h>
-#include <renderlayers/entities/entityrendersystem.h>
 #include <game.h>
 #include <rendercomponents.h>
+#include <renderlayers/entities/entityrendersystem.h>
 #include <renderlayers/tiles/tileatlas.h>
 #include <renderlayers/tiles/tilemap.h>
 #include <renderlayers/tiles/tilerenderer.h>
@@ -53,9 +53,9 @@ int main() {
             {"../../../assets/floor1.png", "../../../assets/rusty_metal.png"});
 
         // Create a test tile map (10x8 tiles)
-        auto tileMap = std::make_unique<SpaceRogueLite::TileMap>(10, 8);
-        for (int y = 0; y < 8; ++y) {
-            for (int x = 0; x < 10; ++x) {
+        auto tileMap = std::make_unique<SpaceRogueLite::TileMap>(58, 32);
+        for (int y = 0; y < 32; ++y) {
+            for (int x = 0; x < 58; ++x) {
                 tileMap->setTile(x, y, (x + y) % 2 == 0 ? 1 : 2);
             }
         }
@@ -66,7 +66,7 @@ int main() {
         // Create a test entity with a spaceworm sprite
         auto testEntity = registry.create();
         registry.emplace<SpaceRogueLite::Position>(testEntity, 100, 100);
-        registry.emplace<SpaceRogueLite::Renderable>(testEntity, glm::vec2(64.0f, 64.0f),
+        registry.emplace<SpaceRogueLite::Renderable>(testEntity, glm::vec2(32.0f, 32.0f),
                                                      glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                                                      "../../../assets/spaceworm2.png");
 
