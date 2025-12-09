@@ -42,6 +42,7 @@ int main() {
         SpaceRogueLite::Game game;
         SpaceRogueLite::Client client(1, yojimbo::Address("127.0.0.1", 8081), messageHandler);
         SpaceRogueLite::ClientMessageTransmitter messageTransmitter(client);
+        // TODO: Remove this eventually
         SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
 
         SpaceRogueLite::Window window("SpaceRogueLite Client", 1920, 1080);
@@ -51,6 +52,9 @@ int main() {
 
         tileRenderer->loadAtlasTiles(
             {"../../../assets/floor1.png", "../../../assets/rusty_metal.png"});
+
+        window.getTextureLoader()->loadAndAssignTexture("../../../assets/spaceworm2.png",
+                                                        "spaceworm");
 
         // Create a test tile map (10x8 tiles)
         auto tileMap = std::make_unique<SpaceRogueLite::TileMap>(58, 32);
@@ -66,9 +70,8 @@ int main() {
         // Create a test entity with a spaceworm sprite
         auto testEntity = registry.create();
         registry.emplace<SpaceRogueLite::Position>(testEntity, 100, 100);
-        registry.emplace<SpaceRogueLite::Renderable>(testEntity, glm::vec2(32.0f, 32.0f),
-                                                     glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                                     "../../../assets/spaceworm2.png");
+        registry.emplace<SpaceRogueLite::Renderable>(
+            testEntity, glm::vec2(32.0f, 32.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), "spaceworm");
 
         game.attachWorker(
             {1, "ClientUpdateLoop", [&client](int64_t timeSinceLastFrame, bool& quit) {

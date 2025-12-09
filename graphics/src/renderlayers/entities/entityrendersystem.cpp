@@ -35,17 +35,6 @@ bool EntityRenderSystem::initialize() {
 void EntityRenderSystem::shutdown() {
     SDL_WaitForGPUIdle(device);
 
-    // Release all cached textures
-    for (auto& [path, tex] : textureCache) {
-        if (tex.sampler) {
-            SDL_ReleaseGPUSampler(device, tex.sampler);
-        }
-        if (tex.texture) {
-            SDL_ReleaseGPUTexture(device, tex.texture);
-        }
-    }
-    textureCache.clear();
-
     // Release untextured pipeline resources
     if (untexturedVertexBuffer) {
         SDL_ReleaseGPUBuffer(device, untexturedVertexBuffer);
@@ -84,16 +73,11 @@ void EntityRenderSystem::shutdown() {
 }
 
 void EntityRenderSystem::prepareFrame(SDL_GPUCommandBuffer* commandBuffer) {
-    auto texturedView = registry.view<Position, Renderable>();
-    for (auto [_, pos, renderable] : texturedView.each()) {
-        if (textureCache.find(renderable.texturePath) == textureCache.end()) {
-            loadTexture(renderable.texturePath);
-        }
-    }
+    // No-op
 }
 
 void EntityRenderSystem::render(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass,
-                               const Camera& camera) {
+                                const Camera& camera) {
     renderTexturedEntities(commandBuffer, renderPass, camera);
     renderUntexturedEntities(commandBuffer, renderPass, camera);
 }
@@ -364,110 +348,9 @@ bool EntityRenderSystem::createVertexBuffers() {
     return true;
 }
 
-EntityRenderSystem::EntityTexture* EntityRenderSystem::loadTexture(const std::string& path) {
-    SDL_Surface* surface = IMG_Load(path.c_str());
-    if (!surface) {
-        spdlog::error("Failed to load entity texture {}: {}", path, SDL_GetError());
-        return nullptr;
-    }
-
-    SDL_Surface* convertedSurface = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_RGBA32);
-    SDL_DestroySurface(surface);
-    if (!convertedSurface) {
-        spdlog::error("Failed to convert surface to RGBA32: {}", SDL_GetError());
-        return nullptr;
-    }
-
-    EntityTexture tex;
-    tex.width = static_cast<uint32_t>(convertedSurface->w);
-    tex.height = static_cast<uint32_t>(convertedSurface->h);
-
-    // Create GPU texture
-    SDL_GPUTextureCreateInfo textureInfo = {};
-    textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
-    textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-    textureInfo.width = tex.width;
-    textureInfo.height = tex.height;
-    textureInfo.layer_count_or_depth = 1;
-    textureInfo.num_levels = 1;
-    textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
-
-    tex.texture = SDL_CreateGPUTexture(device, &textureInfo);
-    if (!tex.texture) {
-        spdlog::error("Failed to create GPU texture: {}", SDL_GetError());
-        SDL_DestroySurface(convertedSurface);
-        return nullptr;
-    }
-
-    // Upload texture data
-    uint32_t textureDataSize = tex.width * tex.height * 4;
-
-    SDL_GPUTransferBufferCreateInfo transferInfo = {};
-    transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    transferInfo.size = textureDataSize;
-
-    SDL_GPUTransferBuffer* textureTransfer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
-    if (!textureTransfer) {
-        spdlog::error("Failed to create texture transfer buffer: {}", SDL_GetError());
-        SDL_ReleaseGPUTexture(device, tex.texture);
-        SDL_DestroySurface(convertedSurface);
-        return nullptr;
-    }
-
-    void* textureData = SDL_MapGPUTransferBuffer(device, textureTransfer, false);
-    SDL_memcpy(textureData, convertedSurface->pixels, textureDataSize);
-    SDL_UnmapGPUTransferBuffer(device, textureTransfer);
-
-    SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(device);
-    SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(commandBuffer);
-
-    SDL_GPUTextureTransferInfo transferSource = {};
-    transferSource.transfer_buffer = textureTransfer;
-    transferSource.offset = 0;
-    transferSource.pixels_per_row = static_cast<Uint32>(convertedSurface->w);
-    transferSource.rows_per_layer = static_cast<Uint32>(convertedSurface->h);
-
-    SDL_GPUTextureRegion textureRegion = {};
-    textureRegion.texture = tex.texture;
-    textureRegion.x = 0;
-    textureRegion.y = 0;
-    textureRegion.z = 0;
-    textureRegion.w = tex.width;
-    textureRegion.h = tex.height;
-    textureRegion.d = 1;
-
-    SDL_UploadToGPUTexture(copyPass, &transferSource, &textureRegion, false);
-    SDL_EndGPUCopyPass(copyPass);
-    SDL_SubmitGPUCommandBuffer(commandBuffer);
-    SDL_WaitForGPUIdle(device);
-    SDL_ReleaseGPUTransferBuffer(device, textureTransfer);
-
-    SDL_DestroySurface(convertedSurface);
-
-    // Create sampler
-    SDL_GPUSamplerCreateInfo samplerInfo = {};
-    samplerInfo.min_filter = SDL_GPU_FILTER_NEAREST;
-    samplerInfo.mag_filter = SDL_GPU_FILTER_NEAREST;
-    samplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
-    samplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-    samplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-    samplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-
-    tex.sampler = SDL_CreateGPUSampler(device, &samplerInfo);
-    if (!tex.sampler) {
-        spdlog::error("Failed to create sampler: {}", SDL_GetError());
-        SDL_ReleaseGPUTexture(device, tex.texture);
-        return nullptr;
-    }
-
-    auto [it, inserted] = textureCache.emplace(path, tex);
-    spdlog::debug("Loaded entity texture {} ({}x{})", path, tex.width, tex.height);
-    return &it->second;
-}
-
 void EntityRenderSystem::renderTexturedEntities(SDL_GPUCommandBuffer* commandBuffer,
-                                               SDL_GPURenderPass* renderPass,
-                                               const Camera& camera) {
+                                                SDL_GPURenderPass* renderPass,
+                                                const Camera& camera) {
     auto view = registry.view<Position, Renderable>();
     if (view.size_hint() == 0) {
         return;
@@ -487,8 +370,9 @@ void EntityRenderSystem::renderTexturedEntities(SDL_GPUCommandBuffer* commandBuf
     SDL_BindGPUVertexBuffers(renderPass, 0, &vertexBinding, 1);
 
     for (auto [_, pos, renderable] : view.each()) {
-        auto it = textureCache.find(renderable.texturePath);
-        if (it == textureCache.end()) {
+        auto texture = textureLoader->getTexture(renderable.textureName);
+
+        if (texture == nullptr) {
             continue;
         }
 
@@ -499,7 +383,7 @@ void EntityRenderSystem::renderTexturedEntities(SDL_GPUCommandBuffer* commandBuf
         glm::mat4 mvp = camera.getViewProjectionMatrix() * model;
         SDL_PushGPUVertexUniformData(commandBuffer, 0, &mvp, sizeof(glm::mat4));
 
-        SDL_GPUTextureSamplerBinding texBinding = {it->second.texture, it->second.sampler};
+        SDL_GPUTextureSamplerBinding texBinding = {texture->texture, texture->sampler};
         SDL_BindGPUFragmentSamplers(renderPass, 0, &texBinding, 1);
 
         SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
@@ -507,8 +391,8 @@ void EntityRenderSystem::renderTexturedEntities(SDL_GPUCommandBuffer* commandBuf
 }
 
 void EntityRenderSystem::renderUntexturedEntities(SDL_GPUCommandBuffer* commandBuffer,
-                                                 SDL_GPURenderPass* renderPass,
-                                                 const Camera& camera) {
+                                                  SDL_GPURenderPass* renderPass,
+                                                  const Camera& camera) {
     auto view = registry.view<Position, RenderableUntextured>();
     if (view.size_hint() == 0) {
         return;

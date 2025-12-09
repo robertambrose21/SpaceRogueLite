@@ -57,6 +57,7 @@ bool Window::initialize(void) {
     }
 
     camera = std::make_unique<Camera>(width, height);
+    textureLoader = std::make_unique<TextureLoader>(gpuDevice);
 
     SDL_WaitForGPUIdle(gpuDevice);
 
@@ -81,18 +82,13 @@ bool Window::initializeImgui(void) {
     return true;
 }
 
-void Window::sortLayers() {
-    std::sort(renderLayers.begin(), renderLayers.end(),
-              [](const auto& a, const auto& b) { return a->getOrder() < b->getOrder(); });
-    layersSorted = true;
-}
-
 void Window::close(void) {
     // Wait for GPU to finish before cleanup
     SDL_WaitForGPUIdle(gpuDevice);
 
     camera.reset();
     renderLayers.clear();
+    textureLoader.reset();
 
     ImGui_ImplSDLGPU3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
@@ -103,9 +99,10 @@ void Window::close(void) {
     SDL_DestroyWindow(sdlWindow);
 
     TTF_Quit();
-
     SDL_Quit();
 }
+
+TextureLoader* Window::getTextureLoader() { return textureLoader.get(); }
 
 void Window::update(int64_t timeSinceLastFrame, bool& quit) {
     SDL_Event event;
@@ -130,10 +127,7 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
         ImGui_ImplSDLGPU3_PrepareDrawData(drawData, commandBuffer);
     }
 
-    if (!layersSorted) {
-        sortLayers();
-    }
-    for (auto& layer : renderLayers) {
+    for (const auto& layer : renderLayers) {
         layer->prepareFrame(commandBuffer);
     }
 
@@ -159,7 +153,7 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
         SDL_GPURenderPass* renderPass =
             SDL_BeginGPURenderPass(commandBuffer, &colorTarget, 1, nullptr);
 
-        for (auto& layer : renderLayers) {
+        for (const auto& layer : renderLayers) {
             layer->render(commandBuffer, renderPass, *camera);
         }
 

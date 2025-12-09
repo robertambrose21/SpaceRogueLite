@@ -32,14 +32,6 @@ public:
 private:
     entt::registry& registry;
 
-    struct EntityTexture {
-        SDL_GPUTexture* texture = nullptr;
-        SDL_GPUSampler* sampler = nullptr;
-        uint32_t width = 0;
-        uint32_t height = 0;
-    };
-    std::unordered_map<std::string, EntityTexture> textureCache;
-
     SDL_GPUShader* texturedVertexShader = nullptr;
     SDL_GPUShader* texturedFragmentShader = nullptr;
     SDL_GPUGraphicsPipeline* texturedPipeline = nullptr;
@@ -62,8 +54,6 @@ private:
     bool createTexturedPipeline();
     bool createUntexturedPipeline();
     bool createVertexBuffers();
-
-    EntityTexture* loadTexture(const std::string& path);
 
     void renderTexturedEntities(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass,
                                 const Camera& camera);

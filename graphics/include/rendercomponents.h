@@ -8,7 +8,7 @@ namespace SpaceRogueLite {
 struct Renderable {
     glm::vec2 size;
     glm::vec4 color;
-    std::string texturePath;
+    std::string textureName;
 };
 
 struct RenderableUntextured {

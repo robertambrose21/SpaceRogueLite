@@ -3,12 +3,14 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <spdlog/spdlog.h>
-#include <algorithm>
+#include <entt/entt.hpp>
 #include <memory>
+#include <set>
 #include <string>
-#include <vector>
+#include <type_traits>
 #include "camera.h"
 #include "renderlayers/renderlayer.h"
+#include "textureloader.h"
 
 namespace SpaceRogueLite {
 
@@ -23,29 +25,33 @@ public:
 
     template <typename T, typename... Args>
     T* createRenderLayer(Args&&... args) {
+        static_assert(std::is_base_of_v<RenderLayer, T>, "T must derive from RenderLayer");
+
         auto layer = std::make_unique<T>(std::forward<Args>(args)...);
 
-        if (!layer->doInitialize(gpuDevice, sdlWindow)) {
+        if (!layer->doInitialize(gpuDevice, sdlWindow, textureLoader.get())) {
             spdlog::error("Failed to initialize render layer {}", layer->getName());
             return nullptr;
         }
 
-        auto layerPtr = layer.get();
-        renderLayers.push_back(std::move(layer));
-        layersSorted = false;
+        auto* layerPtr = layer.get();
+        renderLayers.insert(std::move(layer));
 
         return layerPtr;
     }
 
     template <typename T>
     T* getRenderLayer() {
-        for (auto& layer : renderLayers) {
+        static_assert(std::is_base_of_v<RenderLayer, T>, "T must derive from RenderLayer");
+        for (const auto& layer : renderLayers) {
             if (auto* ptr = dynamic_cast<T*>(layer.get())) {
                 return ptr;
             }
         }
         return nullptr;
     }
+
+    TextureLoader* getTextureLoader();
 
     void update(int64_t timeSinceLastFrame, bool& quit);
     void updateUI(int64_t timeSinceLastFrame, bool& quit);
@@ -60,10 +66,9 @@ private:
 
     std::unique_ptr<Camera> camera;
 
-    std::vector<std::unique_ptr<RenderLayer>> renderLayers;
-    bool layersSorted = false;
+    std::set<std::unique_ptr<RenderLayer>, RenderLayerComparator> renderLayers;
 
-    void sortLayers();
+    std::unique_ptr<TextureLoader> textureLoader;
 };
 
 }  // namespace SpaceRogueLite

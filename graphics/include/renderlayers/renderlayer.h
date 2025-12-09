@@ -1,7 +1,10 @@
 #pragma once
 #include <SDL3/SDL.h>
 #include <cstdint>
+#include <memory>
 #include <string>
+#include "textureloader.h"
+
 namespace SpaceRogueLite {
 
 class Camera;
@@ -26,16 +29,25 @@ public:
 protected:
     SDL_GPUDevice* device = nullptr;
     SDL_Window* window = nullptr;
+    TextureLoader* textureLoader = nullptr;
 
 private:
-    bool doInitialize(SDL_GPUDevice* device, SDL_Window* window) {
+    bool doInitialize(SDL_GPUDevice* device, SDL_Window* window, TextureLoader* textureLoader) {
         this->device = device;
         this->window = window;
+        this->textureLoader = textureLoader;
 
         return initialize();
     }
 
     std::string name;
+};
+
+struct RenderLayerComparator {
+    bool operator()(const std::unique_ptr<RenderLayer>& a,
+                    const std::unique_ptr<RenderLayer>& b) const {
+        return a->getOrder() < b->getOrder();
+    }
 };
 
 namespace LayerOrder {
