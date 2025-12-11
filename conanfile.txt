@@ -2,6 +2,7 @@
 yojimbo/v1.2.5
 net/1.0.0-prealpha
 core/1.0.0-prealpha
+graphics/1.0.0-prealpha
 
 [generators]
 CMakeDeps

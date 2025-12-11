@@ -52,7 +52,7 @@ for DIR in "$THIRD_PARTY_DIR"/*/; do
         conan install . --build=missing -s build_type="$BUILD_TYPE"
 
         echo "Running conan create..."
-        conan create . -s build_type="$BUILD_TYPE"
+        conan create . -s build_type="$BUILD_TYPE" --build=missing
 
         # Go back to the previous directory
         popd > /dev/null
@@ -101,3 +101,29 @@ for DIR in */; do
 done
 
 echo "All packages processed."
+
+# Install workspace-level dependencies
+echo "=============================="
+echo "Installing workspace dependencies..."
+echo "=============================="
+
+for BUILD_TYPE in "${BUILD_TYPES[@]}"; do
+    echo "--------------------------"
+    echo "Build type: $BUILD_TYPE"
+
+    BUILD_DIR_LOWER=$(echo "$BUILD_TYPE" | tr '[:upper:]' '[:lower:]')
+    OUTPUT_FOLDER="build/$BUILD_DIR_LOWER"
+
+    echo "Running conan install for workspace (output: $OUTPUT_FOLDER)..."
+    conan install . --output-folder="$OUTPUT_FOLDER" --build=missing -s build_type="$BUILD_TYPE"
+done
+
+echo "=============================="
+echo "✅ Installation complete!"
+echo "=============================="
+echo ""
+echo "Next steps:"
+echo "  1. Configure CMake:"
+echo "     cmake --preset conan-debug    # or conan-release"
+echo "  2. Build:"
+echo "     cmake --build build/debug     # or build/release"

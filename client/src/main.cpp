@@ -3,8 +3,15 @@
 #include <cstring>
 #include <entt/entt.hpp>
 
-#include "actorspawner.h"
-#include "game.h"
+#include <actorspawner.h>
+#include <components.h>
+#include <game.h>
+#include <rendercomponents.h>
+#include <renderlayers/entities/entityrendersystem.h>
+#include <renderlayers/tiles/tileatlas.h>
+#include <renderlayers/tiles/tilemap.h>
+#include <renderlayers/tiles/tilerenderer.h>
+#include <window.h>
 #include "message.h"
 #include "messagefactory.h"
 #include "net/client.h"
@@ -25,50 +32,70 @@ int main() {
 
     spdlog::info("Yojimbo initialized successfully.");
 
-    entt::registry registry;
-    entt::dispatcher dispatcher;
+    {
+        entt::registry registry;
+        entt::dispatcher dispatcher;
 
-    SpaceRogueLite::ClientMessageHandler messageHandler(dispatcher);
-    SpaceRogueLite::ActorSpawner spawner(registry, dispatcher);
+        SpaceRogueLite::ClientMessageHandler messageHandler(dispatcher);
+        SpaceRogueLite::ActorSpawner spawner(registry, dispatcher);
 
-    SpaceRogueLite::Game game;
-    SpaceRogueLite::Client client(1, yojimbo::Address("127.0.0.1", 8081), messageHandler);
-    SpaceRogueLite::ClientMessageTransmitter messageTransmitter(client);
+        SpaceRogueLite::Game game;
+        SpaceRogueLite::Client client(1, yojimbo::Address("127.0.0.1", 8081), messageHandler);
+        SpaceRogueLite::ClientMessageTransmitter messageTransmitter(client);
+        // TODO: Remove this eventually
+        SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
 
-    SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
+        SpaceRogueLite::Window window("SpaceRogueLite Client", 1920, 1080);
+        window.initialize();
 
-    game.attachWorker({1, "ClientUpdateLoop",
-                       [&client](int64_t timeSinceLastFrame, bool& quit) { client.update(timeSinceLastFrame); }});
+        auto tileRenderer = window.createRenderLayer<SpaceRogueLite::TileRenderer>();
 
-    int64_t ticks = 0;
-    int64_t delay = 1000;
-    auto workerFunc = [&](int64_t timeSinceLastFrame, bool& quit) {
-        ticks += timeSinceLastFrame;
+        tileRenderer->loadAtlasTiles(
+            {"../../../assets/floor1.png", "../../../assets/rusty_metal.png"});
 
-        if (ticks < delay) {
-            return;
+        window.getTextureLoader()->loadAndAssignTexture("../../../assets/spaceworm2.png",
+                                                        "spaceworm");
+
+        // Create a test tile map (10x8 tiles)
+        auto tileMap = std::make_unique<SpaceRogueLite::TileMap>(58, 32);
+        for (int y = 0; y < 32; ++y) {
+            for (int x = 0; x < 58; ++x) {
+                tileMap->setTile(x, y, (x + y) % 2 == 0 ? 1 : 2);
+            }
         }
+        tileRenderer->setTileMap(std::move(tileMap));
 
-        auto message = client.createMessage(SpaceRogueLite::MessageType::PING);
-        client.sendMessage(message);
+        window.createRenderLayer<SpaceRogueLite::EntityRenderSystem>(registry);
 
-        ticks = 0;
-    };
+        // Create a test entity with a spaceworm sprite
+        auto testEntity = registry.create();
+        registry.emplace<SpaceRogueLite::Position>(testEntity, 100, 100);
+        registry.emplace<SpaceRogueLite::Renderable>(
+            testEntity, glm::vec2(32.0f, 32.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), "spaceworm");
 
-    // game.attachWorker({2, "PingTest", workerFunc});
+        game.attachWorker(
+            {1, "ClientUpdateLoop", [&client](int64_t timeSinceLastFrame, bool& quit) {
+                 client.update(timeSinceLastFrame);
+             }});
 
-    game.attachWorker({3, "InputHandler", [&inputHandler](int64_t timeSinceLastFrame, bool& quit) {
-                           inputHandler.processCommands(timeSinceLastFrame);
-                       }});
+        game.attachWorker({2, "RenderLoop", [&window](int64_t timeSinceLastFrame, bool& quit) {
+                               window.update(timeSinceLastFrame, quit);
+                           }});
 
-    client.connect();
+        game.attachWorker(
+            {3, "InputHandler", [&inputHandler](int64_t timeSinceLastFrame, bool& quit) {
+                 inputHandler.processCommands(timeSinceLastFrame);
+             }});
 
-    // Send a test spawn message
-    messageTransmitter.sendMessage(SpaceRogueLite::MessageType::SPAWN_ACTOR, "Enemy5");
+        client.connect();
 
-    game.run();
+        // Send a test spawn message
+        messageTransmitter.sendMessage(SpaceRogueLite::MessageType::SPAWN_ACTOR, "Enemy5");
 
-    client.disconnect();
+        game.run();
+
+        client.disconnect();
+    }
 
     ShutdownYojimbo();
 
