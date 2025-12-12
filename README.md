@@ -33,11 +33,7 @@ The `settings.json` file under `.vscode` performs the majority of the intellisen
 
 ```JSON
 "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
-  "cmake.configureSettings": {
-    "CMAKE_TOOLCHAIN_FILE": "${workspaceFolder}/build/release/conan_toolchain.cmake",
-    "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-  },
-  "cmake.buildDirectory": "${workspaceFolder}/build/release",
+"cmake.useCMakePresets": "always",
 ```
 
 #### Troubleshooting
