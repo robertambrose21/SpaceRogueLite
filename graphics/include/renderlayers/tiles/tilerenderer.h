@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL3/SDL.h>
 
+#include <entt/entt.hpp>
 #include <glm/glm.hpp>
 #include <map>
 #include <memory>
@@ -22,9 +23,6 @@ public:
     bool initialize() override;
     void shutdown();
 
-    void setGrid(std::unique_ptr<Grid> grid);
-    Grid* getGrid();
-
     TileId loadAtlasTile(const std::string& path);
     std::map<std::string, TileId> loadAtlasTiles(const std::vector<std::string>& paths);
 
@@ -39,7 +37,6 @@ public:
 
 private:
     std::unique_ptr<TileAtlas> atlas = nullptr;
-    std::unique_ptr<Grid> grid = nullptr;
 
     SDL_GPUShader* composeVertexShader = nullptr;
     SDL_GPUShader* composeFragmentShader = nullptr;

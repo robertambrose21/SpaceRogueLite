@@ -6,9 +6,9 @@
 #include <actorspawner.h>
 #include <components.h>
 #include <game.h>
+#include <grid.h>
 #include <rendercomponents.h>
 #include <renderlayers/entities/entityrendersystem.h>
-#include <grid.h>
 #include <renderlayers/tiles/tileatlas.h>
 #include <renderlayers/tiles/tilerenderer.h>
 #include <window.h>
@@ -57,13 +57,14 @@ int main() {
                                                         "spaceworm");
 
         // Create a test grid (58x32 tiles)
-        auto grid = std::make_unique<SpaceRogueLite::Grid>(58, 32);
+        entt::locator<SpaceRogueLite::Grid>::emplace(58, 32);
+        auto& grid = entt::locator<SpaceRogueLite::Grid>::value();
+
         for (int y = 0; y < 32; ++y) {
             for (int x = 0; x < 58; ++x) {
-                grid->setTile(x, y, (x + y) % 2 == 0 ? 1 : 2);
+                grid.setTile(x, y, (x + y) % 2 == 0 ? 1 : 2);
             }
         }
-        tileRenderer->setGrid(std::move(grid));
 
         window.createRenderLayer<SpaceRogueLite::EntityRenderSystem>(registry);
 
