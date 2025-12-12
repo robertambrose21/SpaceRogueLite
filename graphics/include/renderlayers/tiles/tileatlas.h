@@ -2,12 +2,13 @@
 #include <SDL3/SDL.h>
 
 #include <glm/glm.hpp>
+#include <grid.h>
 #include <string>
 #include <vector>
 
-#include "tiletypes.h"
-
 namespace SpaceRogueLite {
+
+constexpr int TILE_SIZE = 32;  // Pixel width/height of a tile
 
 class TileAtlas {
 public:

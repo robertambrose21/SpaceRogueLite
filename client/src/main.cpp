@@ -8,8 +8,8 @@
 #include <game.h>
 #include <rendercomponents.h>
 #include <renderlayers/entities/entityrendersystem.h>
+#include <grid.h>
 #include <renderlayers/tiles/tileatlas.h>
-#include <renderlayers/tiles/tilemap.h>
 #include <renderlayers/tiles/tilerenderer.h>
 #include <window.h>
 #include "message.h"
@@ -56,14 +56,14 @@ int main() {
         window.getTextureLoader()->loadAndAssignTexture("../../../assets/spaceworm2.png",
                                                         "spaceworm");
 
-        // Create a test tile map (10x8 tiles)
-        auto tileMap = std::make_unique<SpaceRogueLite::TileMap>(58, 32);
+        // Create a test grid (58x32 tiles)
+        auto grid = std::make_unique<SpaceRogueLite::Grid>(58, 32);
         for (int y = 0; y < 32; ++y) {
             for (int x = 0; x < 58; ++x) {
-                tileMap->setTile(x, y, (x + y) % 2 == 0 ? 1 : 2);
+                grid->setTile(x, y, (x + y) % 2 == 0 ? 1 : 2);
             }
         }
-        tileRenderer->setTileMap(std::move(tileMap));
+        tileRenderer->setGrid(std::move(grid));
 
         window.createRenderLayer<SpaceRogueLite::EntityRenderSystem>(registry);
 

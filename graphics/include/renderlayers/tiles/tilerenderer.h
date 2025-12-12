@@ -8,7 +8,6 @@
 #include "camera.h"
 #include "renderlayers/renderlayer.h"
 #include "tileatlas.h"
-#include "tilemap.h"
 
 namespace SpaceRogueLite {
 
@@ -23,8 +22,8 @@ public:
     bool initialize() override;
     void shutdown();
 
-    void setTileMap(std::unique_ptr<TileMap> tileMap);
-    TileMap* getTileMap();
+    void setGrid(std::unique_ptr<Grid> grid);
+    Grid* getGrid();
 
     TileId loadAtlasTile(const std::string& path);
     std::map<std::string, TileId> loadAtlasTiles(const std::vector<std::string>& paths);
@@ -40,7 +39,7 @@ public:
 
 private:
     std::unique_ptr<TileAtlas> atlas = nullptr;
-    std::unique_ptr<TileMap> tileMap = nullptr;
+    std::unique_ptr<Grid> grid = nullptr;
 
     SDL_GPUShader* composeVertexShader = nullptr;
     SDL_GPUShader* composeFragmentShader = nullptr;

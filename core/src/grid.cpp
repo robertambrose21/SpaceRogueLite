@@ -1,15 +1,15 @@
-#include "renderlayers/tiles/tilemap.h"
+#include <grid.h>
 
 #include <algorithm>
 
 namespace SpaceRogueLite {
 
-TileMap::TileMap(int width, int height) : width(width), height(height) {
+Grid::Grid(int width, int height) : width(width), height(height) {
     tiles.resize(width * height, TILE_EMPTY);
     markAllDirty();
 }
 
-void TileMap::setTile(int x, int y, TileId tile) {
+void Grid::setTile(int x, int y, TileId tile) {
     if (!isValidPosition(x, y)) {
         return;
     }
@@ -21,18 +21,18 @@ void TileMap::setTile(int x, int y, TileId tile) {
     }
 }
 
-TileId TileMap::getTile(int x, int y) const {
+TileId Grid::getTile(int x, int y) const {
     if (!isValidPosition(x, y)) {
         return TILE_EMPTY;
     }
     return tiles[y * width + x];
 }
 
-int TileMap::getWidth() const { return width; }
+int Grid::getWidth() const { return width; }
 
-int TileMap::getHeight() const { return height; }
+int Grid::getHeight() const { return height; }
 
-void TileMap::resize(int newWidth, int newHeight) {
+void Grid::resize(int newWidth, int newHeight) {
     if (newWidth == width && newHeight == height) {
         return;
     }
@@ -55,21 +55,21 @@ void TileMap::resize(int newWidth, int newHeight) {
     markAllDirty();
 }
 
-bool TileMap::isDirty() const { return dirty; }
+bool Grid::isDirty() const { return dirty; }
 
-TileRegion TileMap::getDirtyRegion() const { return dirtyRegion; }
+GridRegion Grid::getDirtyRegion() const { return dirtyRegion; }
 
-void TileMap::clearDirty() {
+void Grid::clearDirty() {
     dirty = false;
     dirtyRegion = {0, 0, 0, 0};
 }
 
-void TileMap::markAllDirty() {
+void Grid::markAllDirty() {
     dirty = true;
     dirtyRegion = {0, 0, width, height};
 }
 
-void TileMap::forEachTile(std::function<void(int x, int y, TileId)> callback) const {
+void Grid::forEachTile(std::function<void(int x, int y, TileId)> callback) const {
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             callback(x, y, tiles[y * width + x]);
@@ -77,7 +77,7 @@ void TileMap::forEachTile(std::function<void(int x, int y, TileId)> callback) co
     }
 }
 
-void TileMap::expandDirtyRegion(int x, int y) {
+void Grid::expandDirtyRegion(int x, int y) {
     if (!dirty) {
         dirty = true;
         dirtyRegion = {x, y, 1, 1};
@@ -94,7 +94,7 @@ void TileMap::expandDirtyRegion(int x, int y) {
     }
 }
 
-bool TileMap::isValidPosition(int x, int y) const {
+bool Grid::isValidPosition(int x, int y) const {
     return x >= 0 && x < width && y >= 0 && y < height;
 }
 

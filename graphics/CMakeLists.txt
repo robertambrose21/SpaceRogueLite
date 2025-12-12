@@ -37,12 +37,10 @@ compile_shader_to_header(
 add_library(graphics
     src/window.cpp
     src/camera.cpp
-    src/renderlayers/tiles/tilemap.cpp
     src/renderlayers/tiles/tileatlas.cpp
     src/renderlayers/tiles/tilerenderer.cpp
     src/renderlayers/entities/entityrendersystem.cpp
     src/textureloader.cpp
-    include/renderlayers/tiles/tiletypes.h
     include/rendercomponents.h
     include/backends/imgui_impl_sdl3.cpp
     include/backends/imgui_impl_sdlgpu3.cpp

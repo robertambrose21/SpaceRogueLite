@@ -88,16 +88,16 @@ void TileRenderer::shutdown() {
         composeVertexShader = nullptr;
     }
 
-    tileMap.reset();
+    grid.reset();
     atlas.reset();
 }
 
-void TileRenderer::setTileMap(std::unique_ptr<TileMap> tileMap) {
-    this->tileMap = std::move(tileMap);
+void TileRenderer::setGrid(std::unique_ptr<Grid> grid) {
+    this->grid = std::move(grid);
     invalidateCache();
 }
 
-TileMap* TileRenderer::getTileMap() { return tileMap.get(); }
+Grid* TileRenderer::getGrid() { return grid.get(); }
 
 TileId TileRenderer::loadAtlasTile(const std::string& path) {
     auto tileId = atlas->loadTile(path);
@@ -119,12 +119,12 @@ std::map<std::string, TileId> TileRenderer::loadAtlasTiles(const std::vector<std
 }
 
 void TileRenderer::prepareFrame(SDL_GPUCommandBuffer* commandBuffer) {
-    if (!atlas || !tileMap || tileMap->getWidth() == 0 || tileMap->getHeight() == 0) {
+    if (!atlas || !grid || grid->getWidth() == 0 || grid->getHeight() == 0) {
         return;
     }
 
-    uint32_t requiredWidth = tileMap->getWidth() * TILE_SIZE;
-    uint32_t requiredHeight = tileMap->getHeight() * TILE_SIZE;
+    uint32_t requiredWidth = grid->getWidth() * TILE_SIZE;
+    uint32_t requiredHeight = grid->getHeight() * TILE_SIZE;
 
     if (bakedWidth != requiredWidth || bakedHeight != requiredHeight) {
         if (!createRenderTarget(requiredWidth, requiredHeight)) {
@@ -133,9 +133,9 @@ void TileRenderer::prepareFrame(SDL_GPUCommandBuffer* commandBuffer) {
         cacheValid = false;
     }
 
-    if (!cacheValid || tileMap->isDirty()) {
+    if (!cacheValid || grid->isDirty()) {
         rebakeTiles(commandBuffer);
-        tileMap->clearDirty();
+        grid->clearDirty();
         cacheValid = true;
     }
 }
@@ -555,8 +555,8 @@ bool TileRenderer::ensureInstanceBuffer(uint32_t tileCount) {
 }
 
 void TileRenderer::rebakeTiles(SDL_GPUCommandBuffer* commandBuffer) {
-    int mapWidth = tileMap->getWidth();
-    int mapHeight = tileMap->getHeight();
+    int mapWidth = grid->getWidth();
+    int mapHeight = grid->getHeight();
     uint32_t tileCount = mapWidth * mapHeight;
 
     if (!ensureInstanceBuffer(tileCount)) {
@@ -568,7 +568,7 @@ void TileRenderer::rebakeTiles(SDL_GPUCommandBuffer* commandBuffer) {
         static_cast<TileInstance*>(SDL_MapGPUTransferBuffer(device, instanceTransfer, true));
 
     uint32_t instanceIdx = 0;
-    tileMap->forEachTile([&](int x, int y, TileId tile) {
+    grid->forEachTile([&](int x, int y, TileId tile) {
         if (tile != TILE_EMPTY) {
             instances[instanceIdx].position = glm::vec2(x * TILE_SIZE, y * TILE_SIZE);
             instances[instanceIdx].uvBounds = atlas->getTileUV(tile);
