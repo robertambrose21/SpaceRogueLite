@@ -88,16 +88,8 @@ void TileRenderer::shutdown() {
         composeVertexShader = nullptr;
     }
 
-    // grid.reset();
     atlas.reset();
 }
-
-// void TileRenderer::setGrid(std::unique_ptr<Grid> grid) {
-//     this->grid = std::move(grid);
-//     invalidateCache();
-// }
-
-// Grid* TileRenderer::getGrid() { return grid.get(); }
 
 TileId TileRenderer::loadAtlasTile(const std::string& path) {
     auto tileId = atlas->loadTile(path);
