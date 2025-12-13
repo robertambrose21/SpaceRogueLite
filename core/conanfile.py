@@ -25,6 +25,8 @@ class coreRecipe(ConanFile):
         self.requires("entt/3.15.0", transitive_headers=True)
         self.requires("glm/1.0.1")
         self.requires("spdlog/1.15.3", transitive_headers=True)
+        self.requires("fast-wfc/1.0.0")
+        self.requires("nlohmann_json/3.12.0", transitive_headers=True)
 
     def config_options(self):
         if self.settings.os == "Windows":
