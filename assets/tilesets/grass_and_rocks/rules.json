@@ -1,0 +1,99 @@
+{
+    "tiles": [
+        { "name": "GRASS", "id": 0, "weight": 16, "textureId": 3, "symmetry": "X" },
+        { "name": "DIRT", "id": 1, "weight": 1, "textureId": 4, "symmetry": "X" },
+        { "name": "DIRT_CORNER_A", "id": 2, "weight": 1, "textureId": 14, "symmetry": "L" },
+        { "name": "DIRT_CORNER_B", "id": 3, "weight": 1, "textureId": 8, "symmetry": "L" },
+        { "name": "DIRT_EDGE", "id": 4, "weight": 2, "textureId": 6, "symmetry": "T" },
+        { "name": "WALL", "id": 5, "weight": 16, "textureId": 17, "symmetry": "X" },
+        { "name": "WALL_CORNER_A", "id": 6, "weight": 1, "textureId": 31, "symmetry": "L" },
+        { "name": "WALL_CORNER_B", "id": 7, "weight": 1, "textureId": 24, "symmetry": "L" },
+        { "name": "WALL_EDGE", "id": 8, "weight": 1, "textureId": 21, "symmetry": "T" }
+    ],
+    "walkableTiles": [0, 1, 2, 3, 4],
+    "edgeTile": "WALL",
+    "rooms": {
+        "roomTile": "DIRT"
+    },
+    "neighbours": [
+        { "left": "GRASS", "left_orientation": 0, "right": "GRASS", "right_orientation": 0 },
+        { "left": "DIRT", "left_orientation": 0, "right": "DIRT", "right_orientation": 0 },
+        { "left": "WALL", "left_orientation": 0, "right": "WALL", "right_orientation": 0 },
+
+        { "left": "WALL_CORNER_A", "left_orientation": 0, "right": "WALL_EDGE", "right_orientation": 2 },
+        { "left": "DIRT", "left_orientation": 0, "right": "WALL_CORNER_A", "right_orientation": 0 },
+    
+        { "left": "WALL_CORNER_A", "left_orientation": 1, "right": "DIRT", "right_orientation": 0 },
+        { "left": "WALL_EDGE", "left_orientation": 2, "right": "WALL_CORNER_A", "right_orientation": 1 },
+    
+        { "left": "WALL_CORNER_A", "left_orientation": 2, "right": "DIRT", "right_orientation": 0 },
+        { "left": "WALL_EDGE", "left_orientation": 0, "right": "WALL_CORNER_A", "right_orientation": 2 },
+    
+        { "left": "WALL_CORNER_A", "left_orientation": 3, "right": "WALL_EDGE", "right_orientation": 0 },
+        { "left": "DIRT", "left_orientation": 0, "right": "WALL_CORNER_A", "right_orientation": 3 },
+
+        { "left": "WALL", "left_orientation": 0, "right": "WALL_CORNER_B", "right_orientation": 0 },
+        { "left": "WALL_CORNER_B", "left_orientation": 0, "right": "WALL_EDGE", "right_orientation": 0 },
+    
+        { "left": "WALL_EDGE", "left_orientation": 0, "right": "WALL_CORNER_B", "right_orientation": 1 },
+        { "left": "WALL_CORNER_B", "left_orientation": 1, "right": "WALL", "right_orientation": 0 },
+    
+        { "left": "WALL_EDGE", "left_orientation": 2, "right": "WALL_CORNER_B", "right_orientation": 2 },
+        { "left": "WALL_CORNER_B", "left_orientation": 2, "right": "WALL", "right_orientation": 0 },
+    
+        { "left": "WALL", "left_orientation": 0, "right": "WALL_CORNER_B", "right_orientation": 3 },
+        { "left": "WALL_CORNER_B", "left_orientation": 3, "right": "WALL_EDGE", "right_orientation": 2 },
+
+        { "left": "WALL_EDGE", "left_orientation": 0, "right": "WALL_EDGE", "right_orientation": 0 },
+        { "left": "WALL_EDGE", "left_orientation": 0, "right": "WALL_CORNER_A", "right_orientation": 2 },
+        { "left": "WALL_CORNER_A", "left_orientation": 3, "right": "WALL_EDGE", "right_orientation": 0 },
+    
+        { "left": "DIRT", "left_orientation": 0, "right": "WALL_EDGE", "right_orientation": 1 },
+        { "left": "WALL_EDGE", "left_orientation": 1, "right": "WALL", "right_orientation": 0 },
+        
+        { "left": "WALL_EDGE", "left_orientation": 2, "right": "WALL_EDGE", "right_orientation": 2 },
+        { "left": "WALL_EDGE", "left_orientation": 2, "right": "WALL_CORNER_A", "right_orientation": 1 },
+        { "left": "WALL_CORNER_A", "left_orientation": 0, "right": "WALL_EDGE", "right_orientation": 2 },
+    
+        { "left": "WALL", "left_orientation": 0, "right": "WALL_EDGE", "right_orientation": 3 },
+        { "left": "WALL_EDGE", "left_orientation": 3, "right": "DIRT", "right_orientation": 0 },
+
+        { "left": "DIRT_CORNER_A", "left_orientation": 0, "right": "DIRT_EDGE", "right_orientation": 2 },
+        { "left": "GRASS", "left_orientation": 0, "right": "DIRT_CORNER_A", "right_orientation": 0 },
+
+        { "left": "DIRT_CORNER_A", "left_orientation": 1, "right": "GRASS", "right_orientation": 0 },
+        { "left": "DIRT_EDGE", "left_orientation": 2, "right": "DIRT_CORNER_A", "right_orientation": 1 },
+
+        { "left": "DIRT_CORNER_A", "left_orientation": 2, "right": "GRASS", "right_orientation": 0 },
+        { "left": "DIRT_EDGE", "left_orientation": 0, "right": "DIRT_CORNER_A", "right_orientation": 2 },
+
+        { "left": "DIRT_CORNER_A", "left_orientation": 3, "right": "DIRT_EDGE", "right_orientation": 0 },
+        { "left": "GRASS", "left_orientation": 0, "right": "DIRT_CORNER_A", "right_orientation": 3 },
+
+        { "left": "DIRT", "left_orientation": 0, "right": "DIRT_CORNER_B", "right_orientation": 0 },
+        { "left": "DIRT_CORNER_B", "left_orientation": 0, "right": "DIRT_EDGE", "right_orientation": 0 },
+
+        { "left": "DIRT_EDGE", "left_orientation": 0, "right": "DIRT_CORNER_B", "right_orientation": 1 },
+        { "left": "DIRT_CORNER_B", "left_orientation": 1, "right": "DIRT", "right_orientation": 0 },
+
+        { "left": "DIRT_EDGE", "left_orientation": 2, "right": "DIRT_CORNER_B", "right_orientation": 2 },
+        { "left": "DIRT_CORNER_B", "left_orientation": 2, "right": "DIRT", "right_orientation": 0 },
+
+        { "left": "DIRT", "left_orientation": 0, "right": "DIRT_CORNER_B", "right_orientation": 3 },
+        { "left": "DIRT_CORNER_B", "left_orientation": 3, "right": "DIRT_EDGE", "right_orientation": 2 },
+
+        { "left": "DIRT_EDGE", "left_orientation": 0, "right": "DIRT_EDGE", "right_orientation": 0 },
+        { "left": "DIRT_EDGE", "left_orientation": 0, "right": "DIRT_CORNER_A", "right_orientation": 2 },
+        { "left": "DIRT_CORNER_A", "left_orientation": 3, "right": "DIRT_EDGE", "right_orientation": 0 },
+
+        { "left": "GRASS", "left_orientation": 0, "right": "DIRT_EDGE", "right_orientation": 1 },
+        { "left": "DIRT_EDGE", "left_orientation": 1, "right": "DIRT", "right_orientation": 0 },
+
+        { "left": "DIRT_EDGE", "left_orientation": 2, "right": "DIRT_EDGE", "right_orientation": 2 },
+        { "left": "DIRT_EDGE", "left_orientation": 2, "right": "DIRT_CORNER_A", "right_orientation": 1 },
+        { "left": "DIRT_CORNER_A", "left_orientation": 0, "right": "DIRT_EDGE", "right_orientation": 2 },
+
+        { "left": "DIRT", "left_orientation": 0, "right": "DIRT_EDGE", "right_orientation": 3 },
+        { "left": "DIRT_EDGE", "left_orientation": 3, "right": "GRASS", "right_orientation": 0 }
+    ]
+}
