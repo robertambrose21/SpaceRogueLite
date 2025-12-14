@@ -5,11 +5,11 @@
 namespace SpaceRogueLite {
 
 Grid::Grid(int width, int height) : width(width), height(height) {
-    tiles.resize(width * height, TILE_EMPTY);
+    tiles.resize(width * height, TILE_DEFAULT);
     markAllDirty();
 }
 
-void Grid::setTile(int x, int y, TileId tile) {
+void Grid::setTile(int x, int y, const GridTile& tile) {
     if (!isValidPosition(x, y)) {
         return;
     }
@@ -21,9 +21,9 @@ void Grid::setTile(int x, int y, TileId tile) {
     }
 }
 
-TileId Grid::getTile(int x, int y) const {
+GridTile Grid::getTile(int x, int y) const {
     if (!isValidPosition(x, y)) {
-        return TILE_EMPTY;
+        return TILE_DEFAULT;
     }
     return tiles[y * width + x];
 }
@@ -37,7 +37,7 @@ void Grid::resize(int newWidth, int newHeight) {
         return;
     }
 
-    std::vector<TileId> newTiles(newWidth * newHeight, TILE_EMPTY);
+    std::vector<GridTile> newTiles(newWidth * newHeight, TILE_DEFAULT);
 
     // Copy existing tiles that fit in new dimensions
     int copyWidth = std::min(width, newWidth);
@@ -69,7 +69,7 @@ void Grid::markAllDirty() {
     dirtyRegion = {0, 0, width, height};
 }
 
-void Grid::forEachTile(std::function<void(int x, int y, TileId)> callback) const {
+void Grid::forEachTile(std::function<void(int x, int y, const GridTile&)> callback) const {
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             callback(x, y, tiles[y * width + x]);
