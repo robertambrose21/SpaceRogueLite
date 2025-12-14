@@ -23,8 +23,8 @@ public:
     bool initialize() override;
     void shutdown();
 
-    TileId loadAtlasTile(const std::string& path);
-    std::map<std::string, TileId> loadAtlasTiles(const std::vector<std::string>& paths);
+    // Load tiles from a rules JSON file (uses TextureLoader to get surfaces)
+    std::map<std::string, TileId> loadTilesFromRules(const std::string& rulesPath);
 
     void prepareFrame(SDL_GPUCommandBuffer* commandBuffer) override;
 

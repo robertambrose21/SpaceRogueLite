@@ -50,11 +50,11 @@ int main() {
 
         auto tileRenderer = window.createRenderLayer<SpaceRogueLite::TileRenderer>();
 
-        tileRenderer->loadAtlasTiles(
-            {"../../../assets/floor1.png", "../../../assets/rusty_metal.png"});
+        // Load texture definitions first (needed for loadTilesFromRules)
+        window.getTextureLoader()->loadTextureDefinitions("../../../assets/textures.json",
+                                                          "../../../assets/raw_textures");
 
-        window.getTextureLoader()->loadAndAssignTexture("../../../assets/spaceworm2.png",
-                                                        "spaceworm");
+        tileRenderer->loadTilesFromRules("../../../assets/tilesets/grass_and_rocks/rules.json");
 
         // Create a test grid (58x32 tiles)
         entt::locator<SpaceRogueLite::Grid>::emplace(58, 32);
@@ -62,7 +62,7 @@ int main() {
 
         for (int y = 0; y < 32; ++y) {
             for (int x = 0; x < 58; ++x) {
-                grid.setTile(x, y, (x + y) % 2 == 0 ? 1 : 2);
+                grid.setTile(x, y, SpaceRogueLite::GridTile{static_cast<SpaceRogueLite::TileId>((x + y) % 2 == 0 ? 1 : 2)});
             }
         }
 
@@ -72,7 +72,7 @@ int main() {
         auto testEntity = registry.create();
         registry.emplace<SpaceRogueLite::Position>(testEntity, 100, 100);
         registry.emplace<SpaceRogueLite::Renderable>(
-            testEntity, glm::vec2(32.0f, 32.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), "spaceworm");
+            testEntity, glm::vec2(32.0f, 32.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), "SpaceWorm");
 
         game.attachWorker(
             {1, "ClientUpdateLoop", [&client](int64_t timeSinceLastFrame, bool& quit) {

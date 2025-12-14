@@ -1,10 +1,14 @@
 #include "renderlayers/tiles/tilerenderer.h"
 
 #include <spdlog/spdlog.h>
+#include <fstream>
 #include <glm/gtc/matrix_transform.hpp>
+#include <nlohmann/json.hpp>
 
 #include "shaders/textured_quad_shaders.h"
 #include "shaders/tilecompose_shaders.h"
+
+using json = nlohmann::json;
 
 namespace SpaceRogueLite {
 
@@ -91,22 +95,55 @@ void TileRenderer::shutdown() {
     atlas.reset();
 }
 
-TileId TileRenderer::loadAtlasTile(const std::string& path) {
-    auto tileId = atlas->loadTile(path);
-    invalidateCache();
-
-    return tileId;
-}
-
-std::map<std::string, TileId> TileRenderer::loadAtlasTiles(const std::vector<std::string>& paths) {
+std::map<std::string, TileId> TileRenderer::loadTilesFromRules(const std::string& rulesPath) {
     std::map<std::string, TileId> tileIds;
 
-    for (auto path : paths) {
-        tileIds[path] = atlas->loadTile(path);
+    std::ifstream f(rulesPath);
+    if (!f.is_open()) {
+        spdlog::error("Failed to open rules file: {}", rulesPath);
+        return tileIds;
+    }
+
+    json data;
+    try {
+        data = json::parse(f);
+    } catch (const json::parse_error& e) {
+        spdlog::error("Failed to parse rules file {}: {}", rulesPath, e.what());
+        return tileIds;
+    }
+
+    if (!data.contains("tiles") || !data["tiles"].is_array()) {
+        spdlog::error("Rules file {} missing 'tiles' array", rulesPath);
+        return tileIds;
+    }
+
+    for (const auto& tile : data["tiles"]) {
+        if (!tile.contains("name") || !tile.contains("textureId")) {
+            spdlog::warn("Skipping tile with missing name or textureId in {}", rulesPath);
+            continue;
+        }
+
+        std::string tileName = tile["name"].get<std::string>();
+        int textureId = tile["textureId"].get<int>();
+
+        SDL_Surface* surface = textureLoader->loadSurfaceById(textureId);
+        if (!surface) {
+            spdlog::error("Failed to load surface for tile '{}' (textureId: {})", tileName,
+                          textureId);
+            continue;
+        }
+
+        TileId tileId = atlas->loadTileFromSurface(surface, tileName);
+        SDL_DestroySurface(surface);
+
+        if (tileId != TILE_EMPTY) {
+            tileIds[tileName] = tileId;
+        }
     }
 
     invalidateCache();
 
+    spdlog::info("Loaded {} tiles from rules file: {}", tileIds.size(), rulesPath);
     return tileIds;
 }
 
@@ -573,10 +610,10 @@ void TileRenderer::rebakeTiles(SDL_GPUCommandBuffer* commandBuffer) {
         static_cast<TileInstance*>(SDL_MapGPUTransferBuffer(device, instanceTransfer, true));
 
     uint32_t instanceIdx = 0;
-    grid.forEachTile([&](int x, int y, TileId tile) {
-        if (tile != TILE_EMPTY) {
+    grid.forEachTile([&](int x, int y, const GridTile& tile) {
+        if (tile.id != TILE_EMPTY) {
             instances[instanceIdx].position = glm::vec2(x * TILE_SIZE, y * TILE_SIZE);
-            instances[instanceIdx].uvBounds = atlas->getTileUV(tile);
+            instances[instanceIdx].uvBounds = atlas->getTileUV(tile.id);
             instanceIdx++;
         }
     });

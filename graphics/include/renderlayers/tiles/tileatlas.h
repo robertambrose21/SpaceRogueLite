@@ -1,8 +1,8 @@
 #pragma once
 #include <SDL3/SDL.h>
 
-#include <glm/glm.hpp>
 #include <grid.h>
+#include <glm/glm.hpp>
 #include <string>
 #include <vector>
 
@@ -20,9 +20,9 @@ public:
     // Initialize the atlas texture (must be called before loading tiles)
     bool initialize();
 
-    // Load a tile image, returns assigned TileId (0 is reserved for empty)
+    // Load a tile from an existing surface (caller retains ownership and must free surface)
     // Returns TILE_EMPTY on failure
-    TileId loadTile(const std::string& path);
+    TileId loadTileFromSurface(SDL_Surface* surface, const std::string& tileName);
 
     glm::vec4 getTileUV(TileId id) const;
 

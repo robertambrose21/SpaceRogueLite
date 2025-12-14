@@ -46,48 +46,28 @@ bool TileAtlas::initialize() {
     return true;
 }
 
-TileId TileAtlas::loadTile(const std::string& path) {
-    if (nextSlot >= MAX_TILES) {
-        spdlog::error("Tile atlas is full (max tiles: {}), cannot load: {}", MAX_TILES, path);
-        return TILE_EMPTY;
-    }
-
-    SDL_Surface* surface = IMG_Load(path.c_str());
+TileId TileAtlas::loadTileFromSurface(SDL_Surface* surface, const std::string& tileName) {
     if (!surface) {
-        spdlog::error("Failed to load tile image {}: {}", path, SDL_GetError());
+        spdlog::error("Cannot load tile '{}': null surface provided", tileName);
         return TILE_EMPTY;
     }
 
-    // TODO: Consider re-enabling at some point
-    // if (surface->w != TILE_SIZE || surface->h != TILE_SIZE) {
-    //     spdlog::error("Tile {} has wrong dimensions ({}x{}), expected {}x{}", path, surface->w,
-    //                   surface->h, TILE_SIZE, TILE_SIZE);
-    //     SDL_DestroySurface(surface);
-    //     return TILE_EMPTY;
-    // }
-
-    SDL_Surface* convertedSurface = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_RGBA32);
-    SDL_DestroySurface(surface);
-
-    if (!convertedSurface) {
-        spdlog::error("Failed to convert tile surface: {}", SDL_GetError());
+    if (nextSlot >= MAX_TILES) {
+        spdlog::error("Tile atlas is full (max tiles: {}), cannot load: {}", MAX_TILES, tileName);
         return TILE_EMPTY;
     }
 
     uint32_t slot = nextSlot;
-    if (!uploadTileToAtlas(convertedSurface, slot)) {
-        SDL_DestroySurface(convertedSurface);
+    if (!uploadTileToAtlas(surface, slot)) {
         return TILE_EMPTY;
     }
-
-    SDL_DestroySurface(convertedSurface);
 
     glm::vec4 uv = calculateUV(slot);
     tileUVs.push_back(uv);
     nextSlot++;
 
-    spdlog::debug("Loaded tile {} as TileId {} (UV: {},{} - {},{})", path, slot, uv.x, uv.y, uv.z,
-                  uv.w);
+    spdlog::debug("Loaded tile '{}' as TileId {} (UV: {},{} - {},{})", tileName, slot, uv.x, uv.y,
+                  uv.z, uv.w);
 
     return static_cast<TileId>(slot);
 }

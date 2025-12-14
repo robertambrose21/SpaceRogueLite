@@ -2,6 +2,9 @@
 
 #include <SDL3_image/SDL_image.h>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
+
+#include <fstream>
 
 using namespace SpaceRogueLite;
 
@@ -20,24 +23,60 @@ TextureLoader::~TextureLoader() {
     textureCache.clear();
 }
 
-Texture* TextureLoader::loadAndAssignTexture(const std::string& path, const std::string& name) {
-    SDL_Surface* surface = IMG_Load(path.c_str());
+void TextureLoader::loadTextureDefinitions(const std::string& jsonPath,
+                                           const std::string& basePath) {
+    this->basePath = basePath;
 
+    std::ifstream f(jsonPath);
+    if (!f.is_open()) {
+        spdlog::error("Failed to open texture definitions file: {}", jsonPath);
+        return;
+    }
+
+    nlohmann::json data = nlohmann::json::parse(f);
+
+    for (const auto& tex : data["textures"]) {
+        TextureDefinition def;
+        def.id = tex["id"].get<int>();
+        def.name = tex["name"].get<std::string>();
+        def.path = tex["path"].get<std::string>();
+
+        textureDefinitions[def.id] = def;
+        nameToIdMapping[def.name] = def.id;
+    }
+
+    spdlog::info("Loaded {} texture definitions from {}", textureDefinitions.size(), jsonPath);
+}
+
+SDL_Surface* TextureLoader::loadSurfaceFromPath(const std::string& path) {
+    SDL_Surface* surface = IMG_Load(path.c_str());
     if (!surface) {
-        spdlog::error("Failed to load entity texture {}: {}", path, SDL_GetError());
+        spdlog::error("Failed to load image '{}': {}", path, SDL_GetError());
         return nullptr;
     }
 
     SDL_Surface* convertedSurface = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_RGBA32);
     SDL_DestroySurface(surface);
+
     if (!convertedSurface) {
         spdlog::error("Failed to convert surface to RGBA32: {}", SDL_GetError());
+        return nullptr;
+    }
+
+    return convertedSurface;
+}
+
+Texture* TextureLoader::loadAndAssignTexture(const std::string& path, const std::string& name,
+                                             int id) {
+    SDL_Surface* convertedSurface = loadSurfaceFromPath(path);
+    if (!convertedSurface) {
         return nullptr;
     }
 
     Texture texture;
     texture.width = static_cast<uint32_t>(convertedSurface->w);
     texture.height = static_cast<uint32_t>(convertedSurface->h);
+    texture.id = id;
     texture.name = name;
 
     // Create GPU texture
@@ -125,12 +164,48 @@ Texture* TextureLoader::loadAndAssignTexture(const std::string& path, const std:
 }
 
 Texture* TextureLoader::getTexture(const std::string& name) {
-    auto it = textureCache.find(name);
+    auto cached = textureCache.find(name);
 
-    if (it != textureCache.end()) {
-        return &it->second;
+    if (cached != textureCache.end()) {
+        return &cached->second;
     }
 
-    spdlog::warn("Texture '{}' not found in cache", name);
+    auto idMapping = nameToIdMapping.find(name);
+    if (idMapping != nameToIdMapping.end()) {
+        return getTextureById(idMapping->second);
+    }
+
+    spdlog::warn("Texture '{}' not found in cache or definitions", name);
     return nullptr;
+}
+
+Texture* TextureLoader::getTextureById(int id) {
+    auto definition = textureDefinitions.find(id);
+    if (definition == textureDefinitions.end()) {
+        spdlog::warn("Texture definition with id {} not found", id);
+        return nullptr;
+    }
+
+    const auto& def = definition->second;
+
+    auto cached = textureCache.find(def.name);
+    if (cached != textureCache.end()) {
+        return &cached->second;
+    }
+
+    std::string fullPath = basePath + "/" + def.path;
+    return loadAndAssignTexture(fullPath, def.name, def.id);
+}
+
+SDL_Surface* TextureLoader::loadSurfaceById(int textureId) {
+    auto definition = textureDefinitions.find(textureId);
+    if (definition == textureDefinitions.end()) {
+        spdlog::warn("Texture definition with id {} not found", textureId);
+        return nullptr;
+    }
+
+    const auto& def = definition->second;
+    std::string fullPath = basePath + "/" + def.path;
+
+    return loadSurfaceFromPath(fullPath);
 }
