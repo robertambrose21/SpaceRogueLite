@@ -5,11 +5,23 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(EnTT REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
-add_library(core src/game.cpp src/actorspawner.cpp src/grid.cpp)
+add_library(core 
+    src/game.cpp 
+    src/actorspawner.cpp 
+    src/grid.cpp 
+    src/generation/generationstrategy.cpp
+    src/generation/wfctileset.cpp
+    src/generation/wfcstrategy.cpp)
 set_target_properties(core PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 20)
-target_link_libraries(core PUBLIC EnTT::EnTT spdlog::spdlog)
+target_link_libraries(core PUBLIC EnTT::EnTT spdlog::spdlog nlohmann_json::nlohmann_json)
 target_include_directories(core PUBLIC include)
 
-set_target_properties(core PROPERTIES PUBLIC_HEADER "include/game.h", "include/actorspawner.h", "include/components.h", "include/utils/timing.h")
+set_target_properties(core PROPERTIES PUBLIC_HEADER 
+    "include/game.h", 
+    "include/actorspawner.h", 
+    "include/components.h", 
+    "include/utils/timing.h",
+    "include/utils/randomutils.h")
 install(TARGETS core)
