@@ -25,8 +25,8 @@ bool Window::initialize(void) {
         return false;
     }
 
-    sdlWindow =
-        SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height), 0);
+    sdlWindow = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
+                                 SDL_WINDOW_HIGH_PIXEL_DENSITY);
     if (!sdlWindow) {
         spdlog::critical("SDL window could not be created: {}", SDL_GetError());
         return false;

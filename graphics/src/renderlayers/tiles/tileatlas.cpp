@@ -113,9 +113,19 @@ bool TileAtlas::uploadTileToAtlas(SDL_Surface* surface, uint32_t slot) {
         return false;
     }
 
-    // Copy data to transfer buffer
+    // Copy data to transfer buffer, handling surface pitch correctly
     void* data = SDL_MapGPUTransferBuffer(device, transferBuffer, false);
-    SDL_memcpy(data, surface->pixels, dataSize);
+    uint32_t expectedPitch = TILE_SIZE * 4;
+    if (static_cast<uint32_t>(surface->pitch) == expectedPitch) {
+        SDL_memcpy(data, surface->pixels, dataSize);
+    } else {
+        // Copy row by row to handle different pitch/stride
+        uint8_t* dst = static_cast<uint8_t*>(data);
+        uint8_t* src = static_cast<uint8_t*>(surface->pixels);
+        for (uint32_t row = 0; row < TILE_SIZE; row++) {
+            SDL_memcpy(dst + row * expectedPitch, src + row * surface->pitch, expectedPitch);
+        }
+    }
     SDL_UnmapGPUTransferBuffer(device, transferBuffer);
 
     // Calculate position in atlas

@@ -111,8 +111,19 @@ Texture* TextureLoader::loadAndAssignTexture(const std::string& path, const std:
         return nullptr;
     }
 
+    // Copy data to transfer buffer, handling surface pitch correctly
     void* textureData = SDL_MapGPUTransferBuffer(device, textureTransfer, false);
-    SDL_memcpy(textureData, convertedSurface->pixels, textureDataSize);
+    uint32_t expectedPitch = texture.width * 4;
+    if (static_cast<uint32_t>(convertedSurface->pitch) == expectedPitch) {
+        SDL_memcpy(textureData, convertedSurface->pixels, textureDataSize);
+    } else {
+        // Copy row by row to handle different pitch/stride
+        uint8_t* dst = static_cast<uint8_t*>(textureData);
+        uint8_t* src = static_cast<uint8_t*>(convertedSurface->pixels);
+        for (uint32_t row = 0; row < texture.height; row++) {
+            SDL_memcpy(dst + row * expectedPitch, src + row * convertedSurface->pitch, expectedPitch);
+        }
+    }
     SDL_UnmapGPUTransferBuffer(device, textureTransfer);
 
     SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(device);
