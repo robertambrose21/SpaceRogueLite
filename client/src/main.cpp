@@ -6,6 +6,8 @@
 #include <actorspawner.h>
 #include <components.h>
 #include <game.h>
+#include <generation/wfcstrategy.h>
+#include <generation/wfctileset.h>
 #include <grid.h>
 #include <rendercomponents.h>
 #include <renderlayers/entities/entityrendersystem.h>
@@ -48,23 +50,24 @@ int main() {
         SpaceRogueLite::Window window("SpaceRogueLite Client", 1920, 1080);
         window.initialize();
 
+        entt::locator<SpaceRogueLite::Grid>::emplace(32, 32);
+
         auto tileRenderer = window.createRenderLayer<SpaceRogueLite::TileRenderer>();
 
-        // Load texture definitions first (needed for loadTilesFromRules)
         window.getTextureLoader()->loadTextureDefinitions("../../../assets/textures.json",
                                                           "../../../assets/raw_textures");
 
         tileRenderer->loadTilesFromRules("../../../assets/tilesets/grass_and_rocks/rules.json");
 
-        // Create a test grid (58x32 tiles)
-        entt::locator<SpaceRogueLite::Grid>::emplace(58, 32);
-        auto& grid = entt::locator<SpaceRogueLite::Grid>::value();
+        SpaceRogueLite::WFCTileSet tileSet("../../../assets/tilesets/grass_and_rocks/rules.json");
+        tileSet.load();
 
-        for (int y = 0; y < 32; ++y) {
-            for (int x = 0; x < 58; ++x) {
-                grid.setTile(x, y, SpaceRogueLite::GridTile{static_cast<SpaceRogueLite::TileId>((x + y) % 2 == 0 ? 1 : 2)});
-            }
-        }
+        SpaceRogueLite::WFCStrategy wfcStrategy({2, glm::ivec2(2, 2), glm::ivec2(6, 6), 0},
+                                                tileSet);
+        auto generatedMap = wfcStrategy.generate();
+
+        auto& grid = entt::locator<SpaceRogueLite::Grid>::value();
+        grid.setTiles(generatedMap, wfcStrategy.getWidth(), wfcStrategy.getHeight());
 
         window.createRenderLayer<SpaceRogueLite::EntityRenderSystem>(registry);
 

@@ -43,6 +43,7 @@ public:
     Grid(int width, int height);
 
     void setTile(int x, int y, const GridTile& tile);
+    void setTiles(const std::vector<GridTile>& newTiles, int newWidth, int newHeight);
     GridTile getTile(int x, int y) const;
 
     int getWidth() const;

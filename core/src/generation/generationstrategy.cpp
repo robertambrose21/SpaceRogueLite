@@ -9,12 +9,12 @@ GenerationStrategy::GenerationStrategy(const RoomConfiguration& roomConfiguratio
     width = grid.getWidth();
     height = grid.getHeight();
 
-    data.resize(height, std::vector<GridTile>(width, TILE_DEFAULT));
+    data.resize(width * height, TILE_DEFAULT);
 }
 
-void GenerationStrategy::setTile(int x, int y, const GridTile& tile) { data[y][x] = tile; }
+void GenerationStrategy::setTile(int x, int y, const GridTile& tile) { data[y * width + x] = tile; }
 
-GridTile GenerationStrategy::getTile(int x, int y) const { return data[y][x]; }
+GridTile GenerationStrategy::getTile(int x, int y) const { return data[y * width + x]; }
 
 int GenerationStrategy::getWidth(void) const { return width; }
 
@@ -78,4 +78,4 @@ const std::vector<GenerationStrategy::Room>& GenerationStrategy::getRooms(void) 
 
 void GenerationStrategy::clearRooms(void) { rooms.clear(); }
 
-const std::vector<std::vector<GridTile>>& GenerationStrategy::getData(void) const { return data; }
+const std::vector<GridTile>& GenerationStrategy::getData(void) const { return data; }

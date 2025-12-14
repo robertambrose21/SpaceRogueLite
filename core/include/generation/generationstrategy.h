@@ -23,7 +23,7 @@ public:
 
     GenerationStrategy(const RoomConfiguration& roomConfiguration);
 
-    virtual std::vector<std::vector<GridTile>> generate(void) = 0;
+    virtual std::vector<GridTile> generate(void) = 0;
 
     void setTile(int x, int y, const GridTile& tile);
     GridTile getTile(int x, int y) const;
@@ -41,10 +41,10 @@ public:
     int shortestDistance(const Room& room, const std::vector<Room>& existingRooms);
     int distance(const Room& roomA, const Room& roomB);
 
-    const std::vector<std::vector<GridTile>>& getData(void) const;
+    const std::vector<GridTile>& getData(void) const;
 
 private:
-    std::vector<std::vector<GridTile>> data;
+    std::vector<GridTile> data;  // Row-major: data[y * width + x]
     int width;
     int height;
     RoomConfiguration roomConfiguration;

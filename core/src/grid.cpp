@@ -21,6 +21,17 @@ void Grid::setTile(int x, int y, const GridTile& tile) {
     }
 }
 
+void Grid::setTiles(const std::vector<GridTile>& newTiles, int newWidth, int newHeight) {
+    if (newTiles.size() != static_cast<size_t>(newWidth * newHeight)) {
+        return;
+    }
+
+    width = newWidth;
+    height = newHeight;
+    tiles = newTiles;
+    markAllDirty();
+}
+
 GridTile Grid::getTile(int x, int y) const {
     if (!isValidPosition(x, y)) {
         return TILE_DEFAULT;

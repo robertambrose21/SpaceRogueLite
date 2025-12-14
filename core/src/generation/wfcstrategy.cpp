@@ -1,37 +1,42 @@
 #include "generation/wfcstrategy.h"
 #include "utils/randomutils.h"
+#include "utils/timing.h"
 
 using namespace SpaceRogueLite;
 
 WFCStrategy::WFCStrategy(const RoomConfiguration& roomConfiguration, const WFCTileSet& tileSet)
     : GenerationStrategy(roomConfiguration), tileSet(tileSet) {}
 
-std::vector<std::vector<GridTile>> WFCStrategy::generate(void) {
-    // auto startTime = getCurrentTimeInMicroseconds();
-    // spdlog::info("Generating map ({}, {})... ", getWidth(), getHeight());
+std::vector<GridTile> WFCStrategy::generate(void) {
+    auto startTime = Utils::getMicroseconds();
+    spdlog::info("Generating map ({}, {})... ", getWidth(), getHeight());
 
-    // int numAttempts = 10;
-    // int successfulAttempt = 0;
-    // int seed = 0;
-    // auto success = run(numAttempts, successfulAttempt, seed);
+    int numAttempts = 10;
+    int successfulAttempt = 0;
+    int seed = 0;
+    auto success = run(numAttempts, successfulAttempt, seed);
 
-    // if (!success.has_value()) {
-    //     return getData();
-    // }
+    if (!success.has_value()) {
+        return getData();
+    }
 
-    // for (int x = 0; x < getWidth(); x++) {
-    //     for (int y = 0; y < getHeight(); y++) {
-    //         auto const& wfcTile = (*success).data[y * getWidth() + x];
+    for (int x = 0; x < getWidth(); x++) {
+        for (int y = 0; y < getHeight(); y++) {
+            auto const& wfcTile = (*success).data[y * getWidth() + x];
 
-    //         setTile(x, y,
-    //                 {(int) wfcTile.i`d, tileSet.isTileWalkable(wfcTile.id), false,
-    //                  wfcTile.orientation});
-    //     }
-    // }
+            // setTile(
+            //     x, y,
+            //     {(int) wfcTile.id, tileSet.isTileWalkable(wfcTile.id), false,
+            //     wfcTile.orientation});
 
-    // auto timeTaken = (getCurrentTimeInMicroseconds() - startTime) / 1000.0;
-    // spdlog::info("Map generation done ({}ms, {}/{} attempts) [seed={}]", timeTaken,
-    //              successfulAttempt, numAttempts, seed);
+            // Atlas reserves slot 0 for TILE_EMPTY, so tile IDs need +1 offset
+            setTile(x, y, {static_cast<TileId>(wfcTile.id + 1), GridTile::WALKABLE, wfcTile.orientation});
+        }
+    }
+
+    auto timeTaken = (Utils::getMicroseconds() - startTime) / 1000.0;
+    spdlog::info("Map generation done ({}ms, {}/{} attempts) [seed={}]", timeTaken,
+                 successfulAttempt, numAttempts, seed);
 
     return getData();
 }
@@ -43,8 +48,8 @@ std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::run(int numAttempts,
     auto walkableTiles = tileSet.getWalkableTiles();
 
     for (int i = 0; i < numAttempts; i++) {
-        // seed = randomRange(0, INT_MAX);
-        seed = 1969591651;
+        seed = randomRange(0, INT_MAX);
+        // seed = 1969591651;
         setRandomGeneratorSeed(seed);
         auto success = runAttempt(seed);
 

@@ -37,7 +37,7 @@ class WFCStrategy : public GenerationStrategy {
 public:
     WFCStrategy(const RoomConfiguration& roomConfiguration, const WFCTileSet& tileSet);
 
-    std::vector<std::vector<GridTile>> generate(void) override;
+    std::vector<GridTile> generate(void) override;
 
 private:
     std::optional<Array2D<WFCTileSet::WFCTile>> run(int numAttempts, int& successfulAttempt,
