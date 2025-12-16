@@ -1,14 +1,14 @@
 {
     "tiles": [
-        { "name": "GRASS", "tile_id": 1, "weight": 32, "textureId": 3, "symmetry": "X" },
-        { "name": "DIRT", "tile_id": 2, "weight": 16, "textureId": 4, "symmetry": "X" },
-        { "name": "DIRT_CORNER_A", "tile_id": 2, "weight": 1, "textureId": 14, "symmetry": "L" },
-        { "name": "DIRT_CORNER_B", "tile_id": 2, "weight": 1, "textureId": 8, "symmetry": "L" },
-        { "name": "DIRT_EDGE", "tile_id": 2, "weight": 2, "textureId": 6, "symmetry": "T" },
-        { "name": "WALL", "tile_id": 3, "weight": 16, "textureId": 17, "symmetry": "X" },
-        { "name": "WALL_CORNER_A", "tile_id": 3, "weight": 1, "textureId": 31, "symmetry": "L" },
-        { "name": "WALL_CORNER_B", "tile_id": 3, "weight": 1, "textureId": 24, "symmetry": "L" },
-        { "name": "WALL_EDGE", "tile_id": 3, "weight": 1, "textureId": 21, "symmetry": "T" }
+        { "type": "GRASS", "tile_id": 1, "weight": 32, "textureId": 3, "symmetry": "X" },
+        { "type": "DIRT", "tile_id": 2, "weight": 16, "textureId": 4, "symmetry": "X" },
+        { "type": "DIRT_CORNER_A", "tile_id": 2, "weight": 1, "textureId": 14, "symmetry": "L" },
+        { "type": "DIRT_CORNER_B", "tile_id": 2, "weight": 1, "textureId": 8, "symmetry": "L" },
+        { "type": "DIRT_EDGE", "tile_id": 2, "weight": 2, "textureId": 6, "symmetry": "T" },
+        { "type": "WALL", "tile_id": 3, "weight": 16, "textureId": 17, "symmetry": "X" },
+        { "type": "WALL_CORNER_A", "tile_id": 3, "weight": 1, "textureId": 31, "symmetry": "L" },
+        { "type": "WALL_CORNER_B", "tile_id": 3, "weight": 1, "textureId": 24, "symmetry": "L" },
+        { "type": "WALL_EDGE", "tile_id": 3, "weight": 1, "textureId": 21, "symmetry": "T" }
     ],
     "walkableTiles": [1, 2],
     "edgeTile": "WALL",

@@ -36,8 +36,6 @@ public:
     const std::set<TileVariant>& getTileVariants(void) const;
     const std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>>& getNeighbours(
         void) const;
-    // TODO: Remove
-    const std::map<std::string, WFCTile>& getTileMapping(void) const;
 
     const std::map<unsigned, bool>& getWalkableTiles(void) const;
     bool isTileWalkable(unsigned id);
@@ -59,7 +57,6 @@ private:
     std::vector<Tile<WFCTile>> tiles;
     std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>> neighbours;
     std::map<unsigned, bool> walkableTiles;
-    std::map<std::string, WFCTile> tileMapping;
     std::set<TileVariant> tileVariants;
 
     unsigned edgeTile;

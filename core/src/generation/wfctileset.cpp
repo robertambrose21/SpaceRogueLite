@@ -34,25 +34,26 @@ void WFCTileSet::load(void) {
     json data = json::parse(f);
 
     auto tilesJson = data["tiles"].get<std::vector<json>>();
+    std::map<std::string, WFCTile> tileMapping;
 
     for (auto const& tile : tilesJson) {
-        auto name = tile["name"].get<std::string>();
+        auto type = tile["type"].get<std::string>();
 
-        if (tileMapping.contains(name)) {
-            spdlog::error("Duplicate tile '{}' found in rules {}. Cannot generate", name,
+        if (tileMapping.contains(type)) {
+            spdlog::error("Duplicate tile '{}' found in rules {}. Cannot generate", type,
                           rulesFile);
             return;
         }
 
-        tileMapping[name] = {tile["tile_id"].get<uint8_t>(),
-                             getSymmetry(tile["symmetry"].get<std::string>()[0]), name,
+        tileMapping[type] = {tile["tile_id"].get<uint8_t>(),
+                             getSymmetry(tile["symmetry"].get<std::string>()[0]), type,
                              tile["weight"].get<double>(), tile["textureId"].get<uint16_t>()};
     }
 
     std::map<std::string, unsigned> tileIndexMapping;
     unsigned index = 0;
-    for (auto [name, tile] : tileMapping) {
-        tileIndexMapping[name] = index++;
+    for (auto [type, tile] : tileMapping) {
+        tileIndexMapping[type] = index++;
     }
 
     auto neighboursJson = data["neighbours"].get<std::vector<json>>();
@@ -118,7 +119,6 @@ void WFCTileSet::reset(void) {
     tiles.clear();
     neighbours.clear();
     walkableTiles.clear();
-    tileMapping.clear();
     tileVariants.clear();
     isLoaded = false;
     isError = false;
@@ -181,11 +181,6 @@ bool WFCTileSet::isTileWalkable(unsigned id) {
     }
 
     return walkableTiles.contains(id) && walkableTiles[id];
-}
-
-const std::map<std::string, WFCTileSet::WFCTile>& WFCTileSet::getTileMapping(void) const {
-    validate();
-    return tileMapping;
 }
 
 unsigned WFCTileSet::getEdgeTile(void) const {
