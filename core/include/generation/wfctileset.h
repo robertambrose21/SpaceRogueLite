@@ -1,6 +1,7 @@
 #pragma once
 
 #include <grid.h>
+#include <tilevariant.h>
 #include <fastwfc/tiling_wfc.hpp>
 #include <fastwfc/utils/array2D.hpp>
 #include <fastwfc/wfc.hpp>
@@ -25,15 +26,17 @@ public:
         Symmetry symmetry;
         std::string name;
         double weight;
-        int textureId;
+        uint16_t textureId;
         uint8_t orientation;
     } WFCTile;
 
     WFCTileSet(const std::string& rulesFile);
 
     const std::vector<Tile<WFCTile>>& getTiles(void) const;
+    const std::set<TileVariant>& getTileVariants(void) const;
     const std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>>& getNeighbours(
         void) const;
+    // TODO: Remove
     const std::map<std::string, WFCTile>& getTileMapping(void) const;
 
     const std::map<unsigned, bool>& getWalkableTiles(void) const;
@@ -57,6 +60,8 @@ private:
     std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>> neighbours;
     std::map<unsigned, bool> walkableTiles;
     std::map<std::string, WFCTile> tileMapping;
+    std::set<TileVariant> tileVariants;
+
     unsigned edgeTile;
     unsigned roomTile;
 };

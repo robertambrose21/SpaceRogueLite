@@ -4,9 +4,8 @@
 
 using namespace SpaceRogueLite;
 
-WFCStrategy::WFCStrategy(const RoomConfiguration& roomConfiguration, const WFCTileSet& tileSet,
-                         const std::map<std::string, TileId>& tileIdMapping)
-    : GenerationStrategy(roomConfiguration), tileSet(tileSet), tileIdMapping(tileIdMapping) {}
+WFCStrategy::WFCStrategy(const RoomConfiguration& roomConfiguration, const WFCTileSet& tileSet)
+    : GenerationStrategy(roomConfiguration), tileSet(tileSet) {}
 
 std::vector<GridTile> WFCStrategy::generate(void) {
     auto startTime = Utils::getMicroseconds();
@@ -24,17 +23,7 @@ std::vector<GridTile> WFCStrategy::generate(void) {
     for (int x = 0; x < getWidth(); x++) {
         for (int y = 0; y < getHeight(); y++) {
             auto const& wfcTile = (*success).data[y * getWidth() + x];
-
-            // Look up the actual TileId from the mapping using the tile name
-            TileId tileId = TILE_EMPTY;
-            auto it = tileIdMapping.find(wfcTile.name);
-            if (it != tileIdMapping.end()) {
-                tileId = it->second;
-            } else {
-                spdlog::warn("Unknown tile name '{}' in WFC output", wfcTile.name);
-            }
-
-            setTile(x, y, {tileId, GridTile::WALKABLE, wfcTile.orientation});
+            setTile(x, y, {wfcTile.tileId, wfcTile.name, GridTile::WALKABLE, wfcTile.orientation});
         }
     }
 

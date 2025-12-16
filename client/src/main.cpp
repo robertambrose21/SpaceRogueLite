@@ -57,14 +57,12 @@ int main() {
         window.getTextureLoader()->loadTextureDefinitions("../../../assets/textures.json",
                                                           "../../../assets/raw_textures");
 
-        auto tileIdMapping =
-            tileRenderer->loadTilesFromRules("../../../assets/tilesets/grass_and_rocks/rules.json");
-
         SpaceRogueLite::WFCTileSet tileSet("../../../assets/tilesets/grass_and_rocks/rules.json");
         tileSet.load();
 
-        SpaceRogueLite::WFCStrategy wfcStrategy({2, glm::ivec2(2, 2), glm::ivec2(6, 6), 0}, tileSet,
-                                                tileIdMapping);
+        tileRenderer->loadTileVariantsIntoAtlas(tileSet.getTileVariants());
+
+        SpaceRogueLite::WFCStrategy wfcStrategy({2, glm::ivec2(2, 2), glm::ivec2(6, 6), 0}, tileSet);
         auto generatedMap = wfcStrategy.generate();
 
         auto& grid = entt::locator<SpaceRogueLite::Grid>::value();

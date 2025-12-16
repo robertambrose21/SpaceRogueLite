@@ -36,8 +36,7 @@ namespace SpaceRogueLite {
 
 class WFCStrategy : public GenerationStrategy {
 public:
-    WFCStrategy(const RoomConfiguration& roomConfiguration, const WFCTileSet& tileSet,
-                const std::map<std::string, TileId>& tileIdMapping);
+    WFCStrategy(const RoomConfiguration& roomConfiguration, const WFCTileSet& tileSet);
 
     std::vector<GridTile> generate(void) override;
 
@@ -52,7 +51,6 @@ private:
     Room createRandomRoom(void);
 
     WFCTileSet tileSet;
-    std::map<std::string, TileId> tileIdMapping;
 };
 
 }  // namespace SpaceRogueLite

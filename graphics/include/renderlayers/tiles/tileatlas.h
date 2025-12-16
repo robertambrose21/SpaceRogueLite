@@ -2,6 +2,8 @@
 #include <SDL3/SDL.h>
 
 #include <grid.h>
+#include <tilevariant.h>
+
 #include <array>
 #include <glm/glm.hpp>
 #include <string>
@@ -14,6 +16,11 @@ constexpr int TILE_SIZE = 32;  // Pixel width/height of a tile
 
 class TileAtlas {
 public:
+    struct TileAtlasVariant {
+        uint32_t slot;
+        uint8_t orientation;
+    };
+
     explicit TileAtlas(SDL_GPUDevice* device);
     TileAtlas(const TileAtlas&) = delete;
     TileAtlas& operator=(const TileAtlas&) = delete;
@@ -23,11 +30,10 @@ public:
     bool initialize();
 
     // Load a tile from an existing surface (caller retains ownership and must free surface)
-    // Returns TILE_EMPTY on failure
-    TileId loadTileFromSurface(SDL_Surface* surface, const std::string& tileName);
+    // Returns false on failure
+    bool loadTileFromSurface(SDL_Surface* surface, TileId id, const std::string& type);
 
-    glm::vec4 getTileUV(TileId id) const;
-    glm::vec4 getTileUV(TileId baseId, uint8_t orientation) const;
+    glm::vec4 getTileUV(const GridTile& tile) const;
 
     SDL_GPUTexture* getTexture() const;
     SDL_GPUSampler* getSampler() const;
@@ -44,8 +50,9 @@ private:
     std::vector<glm::vec4> tileUVs;  // UV coordinates for each loaded tile
     uint32_t nextSlot = 1;           // Start at 1, 0 is TILE_EMPTY
 
-    // Maps base TileId to array of 4 TileIds (one per orientation: 0, 90, 180, 270)
-    std::unordered_map<TileId, std::array<TileId, 4>> rotationVariants;
+    // Maps (TileId, type) to array of 4 TileVariants (one per orientation: 0, 90, 180, 270)
+    std::unordered_map<TileVariantKey, std::array<TileAtlasVariant, 4>, TileVariantKeyHash>
+        variants;
 
     static constexpr uint32_t ATLAS_SIZE = 1024;
     static constexpr uint32_t TILES_PER_ROW = ATLAS_SIZE / TILE_SIZE;

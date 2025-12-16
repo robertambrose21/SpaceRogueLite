@@ -46,7 +46,7 @@ void WFCTileSet::load(void) {
 
         tileMapping[name] = {tile["tile_id"].get<uint8_t>(),
                              getSymmetry(tile["symmetry"].get<std::string>()[0]), name,
-                             tile["weight"].get<double>(), tile["textureId"].get<int>()};
+                             tile["weight"].get<double>(), tile["textureId"].get<uint16_t>()};
     }
 
     std::map<std::string, unsigned> tileIndexMapping;
@@ -68,6 +68,8 @@ void WFCTileSet::load(void) {
 
     for (auto const& [name, tile] : tileMapping) {
         // walkableTiles[tile.tileId] = walkableTilesJson.contains(tile.tileId);
+
+        tileVariants.insert({tile.tileId, tile.name, tile.textureId});
 
         switch (tile.symmetry) {
             // No symmetry
@@ -117,6 +119,7 @@ void WFCTileSet::reset(void) {
     neighbours.clear();
     walkableTiles.clear();
     tileMapping.clear();
+    tileVariants.clear();
     isLoaded = false;
     isError = false;
 }
@@ -154,6 +157,11 @@ bool WFCTileSet::validate(void) const {
 const std::vector<Tile<WFCTileSet::WFCTile>>& WFCTileSet::getTiles(void) const {
     validate();
     return tiles;
+}
+
+const std::set<TileVariant>& WFCTileSet::getTileVariants(void) const {
+    validate();
+    return tileVariants;
 }
 
 const std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>>& WFCTileSet::getNeighbours(

@@ -96,36 +96,35 @@ bool TileAtlas::initialize() {
     return true;
 }
 
-TileId TileAtlas::loadTileFromSurface(SDL_Surface* surface, const std::string& tileName) {
+bool TileAtlas::loadTileFromSurface(SDL_Surface* surface, TileId id, const std::string& type) {
     if (!surface) {
-        spdlog::error("Cannot load tile '{}': null surface provided", tileName);
-        return TILE_EMPTY;
+        spdlog::error("Cannot load tile variant '{}': null surface provided", type);
+        return false;
     }
 
     // Need 4 slots for all rotations
     if (nextSlot + 4 > MAX_TILES) {
-        spdlog::error("Tile atlas is full (max tiles: {}), cannot load: {}", MAX_TILES, tileName);
-        return TILE_EMPTY;
+        spdlog::error("Tile atlas is full (max tiles: {}), cannot load: {}", MAX_TILES, type);
+        return false;
     }
 
-    TileId baseSlot = static_cast<TileId>(nextSlot);
-    std::array<TileId, 4> variants;
+    std::array<TileAtlasVariant, 4> tileVariants;
 
     // Load original (orientation 0)
     if (!uploadTileToAtlas(surface, nextSlot)) {
-        return TILE_EMPTY;
+        return false;
     }
-    variants[0] = static_cast<TileId>(nextSlot);
+    tileVariants[0] = {nextSlot, 0};
     tileUVs.push_back(calculateUV(nextSlot));
     nextSlot++;
 
     // Create and load rotated versions
     SDL_Surface* rotated = surface;
-    for (int orientation = 1; orientation <= 3; orientation++) {
+    for (uint8_t orientation = 1; orientation <= 3; orientation++) {
         SDL_Surface* newRotated = rotateSurface90CCW(rotated);
         if (!newRotated) {
-            spdlog::error("Failed to rotate tile '{}' for orientation {}", tileName, orientation);
-            return TILE_EMPTY;
+            spdlog::error("Failed to rotate tile '{}' for orientation {}", type, orientation);
+            return false;
         }
 
         // Free previous rotated surface (but not the original)
@@ -136,9 +135,9 @@ TileId TileAtlas::loadTileFromSurface(SDL_Surface* surface, const std::string& t
 
         if (!uploadTileToAtlas(rotated, nextSlot)) {
             SDL_DestroySurface(rotated);
-            return TILE_EMPTY;
+            return false;
         }
-        variants[orientation] = static_cast<TileId>(nextSlot);
+        tileVariants[orientation] = {nextSlot, orientation};
         tileUVs.push_back(calculateUV(nextSlot));
         nextSlot++;
     }
@@ -148,30 +147,26 @@ TileId TileAtlas::loadTileFromSurface(SDL_Surface* surface, const std::string& t
         SDL_DestroySurface(rotated);
     }
 
-    // Store rotation mapping
-    rotationVariants[baseSlot] = variants;
+    variants[{id, type}] = tileVariants;
 
-    spdlog::debug("Loaded tile '{}' as TileId {} with rotations [{}, {}, {}, {}]", tileName,
-                  baseSlot, variants[0], variants[1], variants[2], variants[3]);
+    spdlog::debug("Loaded tile '{}' (id={}) with rotation slots [{}, {}, {}, {}]", type, id,
+                  tileVariants[0].slot, tileVariants[1].slot, tileVariants[2].slot,
+                  tileVariants[3].slot);
 
-    return baseSlot;
+    return true;
 }
 
-glm::vec4 TileAtlas::getTileUV(TileId id) const {
-    if (id >= tileUVs.size()) {
+glm::vec4 TileAtlas::getTileUV(const GridTile& tile) const {
+    auto it = variants.find({tile.id, tile.type});
+
+    if (it == variants.end()) {
+        spdlog::warn(
+            "TileAtlas::getTileUV: TileId {} with type '{}' not found, returning empty UVs",
+            tile.id, tile.type);
         return glm::vec4(0.0f);
     }
-    return tileUVs[id];
-}
 
-glm::vec4 TileAtlas::getTileUV(TileId baseId, uint8_t orientation) const {
-    auto it = rotationVariants.find(baseId);
-    if (it == rotationVariants.end()) {
-        // Fallback for tiles without rotations (e.g., TILE_EMPTY)
-        return getTileUV(baseId);
-    }
-    TileId rotatedId = it->second[orientation % 4];
-    return getTileUV(rotatedId);
+    return tileUVs[it->second[tile.orientation % 4].slot];
 }
 
 SDL_GPUTexture* TileAtlas::getTexture() const { return atlasTexture; }
@@ -191,7 +186,7 @@ void TileAtlas::shutdown() {
     }
     tileUVs.clear();
     tileUVs.push_back(glm::vec4(0.0f));  // Reserve slot 0
-    rotationVariants.clear();
+    variants.clear();
     nextSlot = 1;
 }
 

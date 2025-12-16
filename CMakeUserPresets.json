@@ -5,6 +5,7 @@
     },
     "include": [
         "build/debug/CMakePresets.json",
-        "build/release/CMakePresets.json"
+        "build/release/CMakePresets.json",
+        "build/CMakePresets.json"
     ]
 }

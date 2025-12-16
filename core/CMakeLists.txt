@@ -18,10 +18,11 @@ set_target_properties(core PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 20)
 target_link_libraries(core PUBLIC EnTT::EnTT spdlog::spdlog nlohmann_json::nlohmann_json)
 target_include_directories(core PUBLIC include)
 
-set_target_properties(core PROPERTIES PUBLIC_HEADER 
-    "include/game.h", 
-    "include/actorspawner.h", 
-    "include/components.h", 
+set_target_properties(core PROPERTIES PUBLIC_HEADER
+    "include/game.h",
+    "include/actorspawner.h",
+    "include/components.h",
+    "include/tilevariant.h",
     "include/utils/timing.h",
     "include/utils/randomutils.h",
     "include/generation/generationstrategy.h",

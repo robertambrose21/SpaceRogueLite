@@ -1,10 +1,13 @@
 #pragma once
 #include <SDL3/SDL.h>
 
+#include <grid.h>
+#include <tilevariant.h>
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
 #include <map>
 #include <memory>
+#include <set>
 
 #include "camera.h"
 #include "renderlayers/renderlayer.h"
@@ -23,8 +26,7 @@ public:
     bool initialize() override;
     void shutdown();
 
-    // Load tiles from a rules JSON file (uses TextureLoader to get surfaces)
-    std::map<std::string, TileId> loadTilesFromRules(const std::string& rulesPath);
+    void loadTileVariantsIntoAtlas(const std::set<TileVariant>& variants);
 
     void prepareFrame(SDL_GPUCommandBuffer* commandBuffer) override;
 

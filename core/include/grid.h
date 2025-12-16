@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <fastwfc/wfc.hpp>
 #include <functional>
+#include <string>
 #include <vector>
 
 namespace SpaceRogueLite {
@@ -24,19 +25,21 @@ struct GridTile {
     };
 
     TileId id = TILE_EMPTY;
+    std::string type = "";
     Walkability walkable = BLOCKED;
 
     // Rotation: 0, 1, 2, 3 -> 0, 90, 180, 270 degrees
     uint8_t orientation = 0;
 
     bool operator==(const GridTile& other) const {
-        return id == other.id && walkable == other.walkable && orientation == other.orientation;
+        return id == other.id && walkable == other.walkable && orientation == other.orientation &&
+               type == other.type;
     }
 
     bool operator!=(const GridTile& other) const { return !(*this == other); }
 };
 
-constexpr GridTile TILE_DEFAULT = {TILE_EMPTY, GridTile::BLOCKED, 0};
+inline const GridTile TILE_DEFAULT = {TILE_EMPTY, "", GridTile::BLOCKED, 0};
 
 class Grid {
 public:
