@@ -5,6 +5,56 @@
 
 namespace SpaceRogueLite {
 
+// Rotate an SDL_Surface 90 degrees counter-clockwise
+// Returns a new surface that the caller must free, or nullptr on failure
+static SDL_Surface* rotateSurface90CCW(SDL_Surface* src) {
+    if (!src) return nullptr;
+
+    int w = src->w;
+    int h = src->h;
+
+    // Create destination surface with swapped dimensions
+    SDL_Surface* dst = SDL_CreateSurface(h, w, src->format);
+    if (!dst) {
+        spdlog::error("Failed to create rotated surface: {}", SDL_GetError());
+        return nullptr;
+    }
+
+    // Lock surfaces if needed for direct pixel access
+    if (!SDL_LockSurface(src)) {
+        SDL_DestroySurface(dst);
+        return nullptr;
+    }
+    if (!SDL_LockSurface(dst)) {
+        SDL_UnlockSurface(src);
+        SDL_DestroySurface(dst);
+        return nullptr;
+    }
+
+    uint8_t* srcPixels = static_cast<uint8_t*>(src->pixels);
+    uint8_t* dstPixels = static_cast<uint8_t*>(dst->pixels);
+    int bytesPerPixel = SDL_BYTESPERPIXEL(src->format);
+
+    // Rotate 90° CCW: src(x, y) -> dst(y, w-1-x)
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            int srcIdx = y * src->pitch + x * bytesPerPixel;
+            int dstX = y;
+            int dstY = w - 1 - x;
+            int dstIdx = dstY * dst->pitch + dstX * bytesPerPixel;
+
+            for (int b = 0; b < bytesPerPixel; b++) {
+                dstPixels[dstIdx + b] = srcPixels[srcIdx + b];
+            }
+        }
+    }
+
+    SDL_UnlockSurface(src);
+    SDL_UnlockSurface(dst);
+
+    return dst;
+}
+
 TileAtlas::TileAtlas(SDL_GPUDevice* device) : device(device) {
     // Reserve slot 0 for TILE_EMPTY
     tileUVs.push_back(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -52,24 +102,59 @@ TileId TileAtlas::loadTileFromSurface(SDL_Surface* surface, const std::string& t
         return TILE_EMPTY;
     }
 
-    if (nextSlot >= MAX_TILES) {
+    // Need 4 slots for all rotations
+    if (nextSlot + 4 > MAX_TILES) {
         spdlog::error("Tile atlas is full (max tiles: {}), cannot load: {}", MAX_TILES, tileName);
         return TILE_EMPTY;
     }
 
-    uint32_t slot = nextSlot;
-    if (!uploadTileToAtlas(surface, slot)) {
+    TileId baseSlot = static_cast<TileId>(nextSlot);
+    std::array<TileId, 4> variants;
+
+    // Load original (orientation 0)
+    if (!uploadTileToAtlas(surface, nextSlot)) {
         return TILE_EMPTY;
     }
-
-    glm::vec4 uv = calculateUV(slot);
-    tileUVs.push_back(uv);
+    variants[0] = static_cast<TileId>(nextSlot);
+    tileUVs.push_back(calculateUV(nextSlot));
     nextSlot++;
 
-    spdlog::debug("Loaded tile '{}' as TileId {} (UV: {},{} - {},{})", tileName, slot, uv.x, uv.y,
-                  uv.z, uv.w);
+    // Create and load rotated versions
+    SDL_Surface* rotated = surface;
+    for (int orientation = 1; orientation <= 3; orientation++) {
+        SDL_Surface* newRotated = rotateSurface90CCW(rotated);
+        if (!newRotated) {
+            spdlog::error("Failed to rotate tile '{}' for orientation {}", tileName, orientation);
+            return TILE_EMPTY;
+        }
 
-    return static_cast<TileId>(slot);
+        // Free previous rotated surface (but not the original)
+        if (rotated != surface) {
+            SDL_DestroySurface(rotated);
+        }
+        rotated = newRotated;
+
+        if (!uploadTileToAtlas(rotated, nextSlot)) {
+            SDL_DestroySurface(rotated);
+            return TILE_EMPTY;
+        }
+        variants[orientation] = static_cast<TileId>(nextSlot);
+        tileUVs.push_back(calculateUV(nextSlot));
+        nextSlot++;
+    }
+
+    // Free the last rotated surface
+    if (rotated != surface) {
+        SDL_DestroySurface(rotated);
+    }
+
+    // Store rotation mapping
+    rotationVariants[baseSlot] = variants;
+
+    spdlog::debug("Loaded tile '{}' as TileId {} with rotations [{}, {}, {}, {}]", tileName,
+                  baseSlot, variants[0], variants[1], variants[2], variants[3]);
+
+    return baseSlot;
 }
 
 glm::vec4 TileAtlas::getTileUV(TileId id) const {
@@ -77,6 +162,16 @@ glm::vec4 TileAtlas::getTileUV(TileId id) const {
         return glm::vec4(0.0f);
     }
     return tileUVs[id];
+}
+
+glm::vec4 TileAtlas::getTileUV(TileId baseId, uint8_t orientation) const {
+    auto it = rotationVariants.find(baseId);
+    if (it == rotationVariants.end()) {
+        // Fallback for tiles without rotations (e.g., TILE_EMPTY)
+        return getTileUV(baseId);
+    }
+    TileId rotatedId = it->second[orientation % 4];
+    return getTileUV(rotatedId);
 }
 
 SDL_GPUTexture* TileAtlas::getTexture() const { return atlasTexture; }
@@ -96,11 +191,35 @@ void TileAtlas::shutdown() {
     }
     tileUVs.clear();
     tileUVs.push_back(glm::vec4(0.0f));  // Reserve slot 0
+    rotationVariants.clear();
     nextSlot = 1;
 }
 
 bool TileAtlas::uploadTileToAtlas(SDL_Surface* surface, uint32_t slot) {
     uint32_t dataSize = TILE_SIZE * TILE_SIZE * 4;
+
+    // Scale surface to TILE_SIZE if needed
+    SDL_Surface* scaledSurface = nullptr;
+    SDL_Surface* srcSurface = surface;
+
+    if (surface->w != TILE_SIZE || surface->h != TILE_SIZE) {
+        scaledSurface = SDL_CreateSurface(TILE_SIZE, TILE_SIZE, SDL_PIXELFORMAT_RGBA32);
+        if (!scaledSurface) {
+            spdlog::error("Failed to create scaled surface: {}", SDL_GetError());
+            return false;
+        }
+
+        // Use SDL_BlitSurfaceScaled to scale the image
+        SDL_Rect srcRect = {0, 0, surface->w, surface->h};
+        SDL_Rect dstRect = {0, 0, TILE_SIZE, TILE_SIZE};
+        if (!SDL_BlitSurfaceScaled(surface, &srcRect, scaledSurface, &dstRect,
+                                   SDL_SCALEMODE_NEAREST)) {
+            spdlog::error("Failed to scale surface: {}", SDL_GetError());
+            SDL_DestroySurface(scaledSurface);
+            return false;
+        }
+        srcSurface = scaledSurface;
+    }
 
     // Create transfer buffer
     SDL_GPUTransferBufferCreateInfo transferInfo = {};
@@ -110,20 +229,21 @@ bool TileAtlas::uploadTileToAtlas(SDL_Surface* surface, uint32_t slot) {
     SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
     if (!transferBuffer) {
         spdlog::error("Failed to create transfer buffer: {}", SDL_GetError());
+        if (scaledSurface) SDL_DestroySurface(scaledSurface);
         return false;
     }
 
     // Copy data to transfer buffer, handling surface pitch correctly
     void* data = SDL_MapGPUTransferBuffer(device, transferBuffer, false);
     uint32_t expectedPitch = TILE_SIZE * 4;
-    if (static_cast<uint32_t>(surface->pitch) == expectedPitch) {
-        SDL_memcpy(data, surface->pixels, dataSize);
+    if (static_cast<uint32_t>(srcSurface->pitch) == expectedPitch) {
+        SDL_memcpy(data, srcSurface->pixels, dataSize);
     } else {
         // Copy row by row to handle different pitch/stride
         uint8_t* dst = static_cast<uint8_t*>(data);
-        uint8_t* src = static_cast<uint8_t*>(surface->pixels);
+        uint8_t* src = static_cast<uint8_t*>(srcSurface->pixels);
         for (uint32_t row = 0; row < TILE_SIZE; row++) {
-            SDL_memcpy(dst + row * expectedPitch, src + row * surface->pitch, expectedPitch);
+            SDL_memcpy(dst + row * expectedPitch, src + row * srcSurface->pitch, expectedPitch);
         }
     }
     SDL_UnmapGPUTransferBuffer(device, transferBuffer);
@@ -158,6 +278,10 @@ bool TileAtlas::uploadTileToAtlas(SDL_Surface* surface, uint32_t slot) {
 
     SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
 
+    if (scaledSurface) {
+        SDL_DestroySurface(scaledSurface);
+    }
+
     return true;
 }
 
@@ -170,8 +294,8 @@ glm::vec4 TileAtlas::calculateUV(uint32_t slot) const {
 
     float u_min = col * tileU;
     float v_min = row * tileV;
-    float u_max = u_min + tileU;
-    float v_max = v_min + tileV;
+    float u_max = (col + 1) * tileU;
+    float v_max = (row + 1) * tileV;
 
     return glm::vec4(u_min, v_min, u_max, v_max);
 }

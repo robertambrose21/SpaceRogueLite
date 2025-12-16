@@ -1,5 +1,6 @@
 #pragma once
 
+#include <grid.h>
 #include <fastwfc/tiling_wfc.hpp>
 #include <fastwfc/utils/array2D.hpp>
 #include <fastwfc/wfc.hpp>
@@ -20,7 +21,7 @@ namespace SpaceRogueLite {
 class WFCTileSet {
 public:
     typedef struct _wfcTile {
-        uint8_t id;
+        TileId tileId;
         Symmetry symmetry;
         std::string name;
         double weight;

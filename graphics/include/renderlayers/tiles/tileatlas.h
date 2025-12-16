@@ -2,8 +2,10 @@
 #include <SDL3/SDL.h>
 
 #include <grid.h>
+#include <array>
 #include <glm/glm.hpp>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace SpaceRogueLite {
@@ -25,6 +27,7 @@ public:
     TileId loadTileFromSurface(SDL_Surface* surface, const std::string& tileName);
 
     glm::vec4 getTileUV(TileId id) const;
+    glm::vec4 getTileUV(TileId baseId, uint8_t orientation) const;
 
     SDL_GPUTexture* getTexture() const;
     SDL_GPUSampler* getSampler() const;
@@ -40,6 +43,9 @@ private:
 
     std::vector<glm::vec4> tileUVs;  // UV coordinates for each loaded tile
     uint32_t nextSlot = 1;           // Start at 1, 0 is TILE_EMPTY
+
+    // Maps base TileId to array of 4 TileIds (one per orientation: 0, 90, 180, 270)
+    std::unordered_map<TileId, std::array<TileId, 4>> rotationVariants;
 
     static constexpr uint32_t ATLAS_SIZE = 1024;
     static constexpr uint32_t TILES_PER_ROW = ATLAS_SIZE / TILE_SIZE;

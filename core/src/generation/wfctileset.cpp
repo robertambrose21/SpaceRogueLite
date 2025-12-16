@@ -44,7 +44,7 @@ void WFCTileSet::load(void) {
             return;
         }
 
-        tileMapping[name] = {tile["id"].get<uint8_t>(),
+        tileMapping[name] = {tile["tile_id"].get<uint8_t>(),
                              getSymmetry(tile["symmetry"].get<std::string>()[0]), name,
                              tile["weight"].get<double>(), tile["textureId"].get<int>()};
     }
@@ -67,7 +67,7 @@ void WFCTileSet::load(void) {
     auto walkableTilesJson = data["walkableTiles"].get<std::set<unsigned>>();
 
     for (auto const& [name, tile] : tileMapping) {
-        walkableTiles[tile.id] = walkableTilesJson.contains(tile.id);
+        // walkableTiles[tile.tileId] = walkableTilesJson.contains(tile.tileId);
 
         switch (tile.symmetry) {
             // No symmetry

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <grid.h>
 #include <spdlog/spdlog.h>
 #include <fastwfc/tiling_wfc.hpp>
 #include <fastwfc/utils/array2D.hpp>
@@ -35,7 +36,8 @@ namespace SpaceRogueLite {
 
 class WFCStrategy : public GenerationStrategy {
 public:
-    WFCStrategy(const RoomConfiguration& roomConfiguration, const WFCTileSet& tileSet);
+    WFCStrategy(const RoomConfiguration& roomConfiguration, const WFCTileSet& tileSet,
+                const std::map<std::string, TileId>& tileIdMapping);
 
     std::vector<GridTile> generate(void) override;
 
@@ -50,6 +52,7 @@ private:
     Room createRandomRoom(void);
 
     WFCTileSet tileSet;
+    std::map<std::string, TileId> tileIdMapping;
 };
 
 }  // namespace SpaceRogueLite

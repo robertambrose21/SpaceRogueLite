@@ -4,8 +4,9 @@
 
 using namespace SpaceRogueLite;
 
-WFCStrategy::WFCStrategy(const RoomConfiguration& roomConfiguration, const WFCTileSet& tileSet)
-    : GenerationStrategy(roomConfiguration), tileSet(tileSet) {}
+WFCStrategy::WFCStrategy(const RoomConfiguration& roomConfiguration, const WFCTileSet& tileSet,
+                         const std::map<std::string, TileId>& tileIdMapping)
+    : GenerationStrategy(roomConfiguration), tileSet(tileSet), tileIdMapping(tileIdMapping) {}
 
 std::vector<GridTile> WFCStrategy::generate(void) {
     auto startTime = Utils::getMicroseconds();
@@ -24,13 +25,16 @@ std::vector<GridTile> WFCStrategy::generate(void) {
         for (int y = 0; y < getHeight(); y++) {
             auto const& wfcTile = (*success).data[y * getWidth() + x];
 
-            // setTile(
-            //     x, y,
-            //     {(int) wfcTile.id, tileSet.isTileWalkable(wfcTile.id), false,
-            //     wfcTile.orientation});
+            // Look up the actual TileId from the mapping using the tile name
+            TileId tileId = TILE_EMPTY;
+            auto it = tileIdMapping.find(wfcTile.name);
+            if (it != tileIdMapping.end()) {
+                tileId = it->second;
+            } else {
+                spdlog::warn("Unknown tile name '{}' in WFC output", wfcTile.name);
+            }
 
-            // Atlas reserves slot 0 for TILE_EMPTY, so tile IDs need +1 offset
-            setTile(x, y, {static_cast<TileId>(wfcTile.id + 1), GridTile::WALKABLE, wfcTile.orientation});
+            setTile(x, y, {tileId, GridTile::WALKABLE, wfcTile.orientation});
         }
     }
 
