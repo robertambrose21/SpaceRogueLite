@@ -146,35 +146,16 @@ Symmetry WFCTileSet::getSymmetry(char symmetry) {
     }
 }
 
-bool WFCTileSet::validate(void) const {
-    if (!isLoaded || isError) {
-        spdlog::warn("Warning: Loaded {}, Error {}", isLoaded, isError);
-        return false;
-    }
+const std::vector<Tile<WFCTileSet::WFCTile>>& WFCTileSet::getTiles(void) const { return tiles; }
 
-    return true;
-}
-
-const std::vector<Tile<WFCTileSet::WFCTile>>& WFCTileSet::getTiles(void) const {
-    validate();
-    return tiles;
-}
-
-const std::set<TileVariant>& WFCTileSet::getTileVariants(void) const {
-    validate();
-    return tileVariants;
-}
+const std::set<TileVariant>& WFCTileSet::getTileVariants(void) const { return tileVariants; }
 
 const std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>>& WFCTileSet::getNeighbours(
     void) const {
-    validate();
     return neighbours;
 }
 
-const std::map<TileId, bool>& WFCTileSet::getWalkableTiles(void) const {
-    validate();
-    return walkableTiles;
-}
+const std::map<TileId, bool>& WFCTileSet::getWalkableTiles(void) const { return walkableTiles; }
 
 GridTile::Walkability WFCTileSet::getTileWalkability(TileId id) {
     if (walkableTiles.contains(id)) {
@@ -184,15 +165,9 @@ GridTile::Walkability WFCTileSet::getTileWalkability(TileId id) {
     return GridTile::BLOCKED;
 }
 
-TileId WFCTileSet::getEdgeTile(void) const {
-    validate();
-    return edgeTile;
-}
+TileId WFCTileSet::getEdgeTile(void) const { return edgeTile; }
 
-TileId WFCTileSet::getRoomTile(void) const {
-    validate();
-    return roomTile;
-}
+TileId WFCTileSet::getRoomTile(void) const { return roomTile; }
 
 TileVariant::TextureSymmetry WFCTileSet::toTextureSymmetry(Symmetry symmetry) {
     if (symmetry == Symmetry::X) {

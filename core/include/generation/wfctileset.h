@@ -47,7 +47,6 @@ public:
     void reset(void);
 
 private:
-    bool validate(void) const;
     Symmetry getSymmetry(char symmetry);
     static TileVariant::TextureSymmetry toTextureSymmetry(Symmetry symmetry);
 
