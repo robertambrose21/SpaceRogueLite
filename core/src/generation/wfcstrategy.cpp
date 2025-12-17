@@ -23,7 +23,10 @@ std::vector<GridTile> WFCStrategy::generate(void) {
     for (int x = 0; x < getWidth(); x++) {
         for (int y = 0; y < getHeight(); y++) {
             auto const& wfcTile = (*success).data[y * getWidth() + x];
-            setTile(x, y, {wfcTile.tileId, wfcTile.name, GridTile::WALKABLE, wfcTile.orientation});
+
+            setTile(x, y,
+                    {wfcTile.tileId, wfcTile.name, tileSet.getTileWalkability(wfcTile.tileId),
+                     wfcTile.orientation});
         }
     }
 
@@ -38,7 +41,6 @@ std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::run(int numAttempts,
                                                              int& successfulAttempt, int& seed) {
     auto wfcTiles = tileSet.getTiles();
     auto neighbours = tileSet.getNeighbours();
-    auto walkableTiles = tileSet.getWalkableTiles();
 
     for (int i = 0; i < numAttempts; i++) {
         seed = randomRange(0, INT_MAX);
@@ -62,7 +64,6 @@ std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::run(int numAttempts,
 std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::runAttempt(int seed) {
     auto wfcTiles = tileSet.getTiles();
     auto neighbours = tileSet.getNeighbours();
-    auto walkableTiles = tileSet.getWalkableTiles();
 
     TilingWFC<WFCTileSet::WFCTile> wfc(wfcTiles, neighbours, getHeight(), getWidth(), {false},
                                        seed);

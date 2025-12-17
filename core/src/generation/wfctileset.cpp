@@ -68,7 +68,7 @@ void WFCTileSet::load(void) {
     auto walkableTilesJson = data["walkableTiles"].get<std::set<unsigned>>();
 
     for (auto const& [name, tile] : tileMapping) {
-        // walkableTiles[tile.tileId] = walkableTilesJson.contains(tile.tileId);
+        walkableTiles[tile.tileId] = walkableTilesJson.contains(tile.tileId);
 
         tileVariants.insert(
             {tile.tileId, tile.name, tile.textureId, toTextureSymmetry(tile.symmetry)});
@@ -171,25 +171,25 @@ const std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>>& WFCTileSe
     return neighbours;
 }
 
-const std::map<unsigned, bool>& WFCTileSet::getWalkableTiles(void) const {
+const std::map<TileId, bool>& WFCTileSet::getWalkableTiles(void) const {
     validate();
     return walkableTiles;
 }
 
-bool WFCTileSet::isTileWalkable(unsigned id) {
-    if (!validate()) {
-        return false;
+GridTile::Walkability WFCTileSet::getTileWalkability(TileId id) {
+    if (walkableTiles.contains(id)) {
+        return walkableTiles[id] ? GridTile::WALKABLE : GridTile::BLOCKED;
     }
 
-    return walkableTiles.contains(id) && walkableTiles[id];
+    return GridTile::BLOCKED;
 }
 
-unsigned WFCTileSet::getEdgeTile(void) const {
+TileId WFCTileSet::getEdgeTile(void) const {
     validate();
     return edgeTile;
 }
 
-unsigned WFCTileSet::getRoomTile(void) const {
+TileId WFCTileSet::getRoomTile(void) const {
     validate();
     return roomTile;
 }

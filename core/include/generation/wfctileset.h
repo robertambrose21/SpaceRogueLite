@@ -37,11 +37,11 @@ public:
     const std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>>& getNeighbours(
         void) const;
 
-    const std::map<unsigned, bool>& getWalkableTiles(void) const;
-    bool isTileWalkable(unsigned id);
+    const std::map<TileId, bool>& getWalkableTiles(void) const;
+    GridTile::Walkability getTileWalkability(TileId id);
 
-    unsigned getEdgeTile(void) const;
-    unsigned getRoomTile(void) const;
+    TileId getEdgeTile(void) const;
+    TileId getRoomTile(void) const;
 
     void load(void);
     void reset(void);
@@ -57,11 +57,11 @@ private:
 
     std::vector<Tile<WFCTile>> tiles;
     std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>> neighbours;
-    std::map<unsigned, bool> walkableTiles;
+    std::map<TileId, bool> walkableTiles;
     std::set<TileVariant> tileVariants;
 
-    unsigned edgeTile;
-    unsigned roomTile;
+    TileId edgeTile;
+    TileId roomTile;
 };
 
 }  // namespace SpaceRogueLite
