@@ -17,7 +17,7 @@ TileRenderer::TileRenderer() : RenderLayer("TileRenderer") {}
 TileRenderer::~TileRenderer() { shutdown(); }
 
 bool TileRenderer::initialize() {
-    atlas = std::make_unique<TileAtlas>(device);
+    atlas = std::make_unique<TileAtlas>(device, textureLoader);
     if (!atlas->initialize()) {
         spdlog::error("Failed to initialize tile atlas");
         return false;
@@ -99,25 +99,14 @@ void TileRenderer::loadTileVariantsIntoAtlas(const std::set<TileVariant>& varian
     uint32_t loadedCount = 0;
 
     for (const auto& variant : variants) {
-        SDL_Surface* surface = textureLoader->loadSurfaceById(variant.textureId);
-        if (!surface) {
-            spdlog::error("Failed to load surface for tile variant '{}' (textureId: {})",
-                          variant.type, variant.textureId);
-            continue;
-        }
-
-        bool success = atlas->loadTileFromSurface(surface, variant.tileId, variant.type,
-                                                  variant.symmetry);
-        SDL_DestroySurface(surface);
-
-        if (success) {
+        if (atlas->loadTileVariant(variant)) {
             loadedCount++;
         }
     }
 
     invalidateCache();
 
-    spdlog::info("Loaded {} tile variants into atlas", loadedCount);
+    spdlog::info("Loaded {}/{} tile variants into atlas", loadedCount, variants.size());
 }
 
 void TileRenderer::prepareFrame(SDL_GPUCommandBuffer* commandBuffer) {

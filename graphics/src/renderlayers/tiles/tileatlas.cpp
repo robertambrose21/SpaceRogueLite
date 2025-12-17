@@ -51,7 +51,8 @@ static SDL_Surface* rotateSurface90CCW(SDL_Surface* src) {
     return dst;
 }
 
-TileAtlas::TileAtlas(SDL_GPUDevice* device) : device(device) {
+TileAtlas::TileAtlas(SDL_GPUDevice* device, TextureLoader* textureLoader)
+    : device(device), textureLoader(textureLoader) {
     // Reserve slot 0 for TILE_EMPTY
     tileUVs.push_back(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
 }
@@ -90,6 +91,19 @@ bool TileAtlas::initialize() {
 
     spdlog::debug("TileAtlas initialized ({}x{}, max {} tiles)", ATLAS_SIZE, ATLAS_SIZE, MAX_TILES);
     return true;
+}
+
+bool TileAtlas::loadTileVariant(const TileVariant& variant) {
+    SDL_Surface* surface = textureLoader->loadSurfaceById(variant.textureId);
+    if (!surface) {
+        spdlog::error("Failed to load surface for tile variant '{}' (textureId: {})", variant.type,
+                      variant.textureId);
+        return false;
+    }
+
+    bool success = loadTileFromSurface(surface, variant.tileId, variant.type, variant.symmetry);
+    SDL_DestroySurface(surface);
+    return success;
 }
 
 bool TileAtlas::loadTileFromSurface(SDL_Surface* surface, TileId id, const std::string& type,
@@ -136,7 +150,7 @@ std::vector<TileAtlas::TileAtlasVariant> TileAtlas::loadSymmetricTile(SDL_Surfac
     std::vector<TileAtlasVariant> result;
     result.push_back({nextSlot, 0});
 
-    spdlog::debug("Loaded tile '{}' (id={}) with single slot [{}]", type, id, nextSlot);
+    spdlog::trace("Loaded tile '{}' (tile_id={}) with single slot [{}]", type, id, nextSlot);
     nextSlot++;
     return result;
 }
@@ -185,7 +199,7 @@ std::vector<TileAtlas::TileAtlasVariant> TileAtlas::loadRotatableTile(SDL_Surfac
         SDL_DestroySurface(rotated);
     }
 
-    spdlog::debug("Loaded tile '{}' (id={}) with rotation slots [{}, {}, {}, {}]", type, id,
+    spdlog::trace("Loaded tile '{}' (tile_id={}) with rotation slots [{}, {}, {}, {}]", type, id,
                   result[0].slot, result[1].slot, result[2].slot, result[3].slot);
 
     return result;

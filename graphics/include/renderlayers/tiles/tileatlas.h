@@ -3,6 +3,7 @@
 
 #include <grid.h>
 #include <tilevariant.h>
+#include "textureloader.h"
 
 #include <glm/glm.hpp>
 #include <string>
@@ -22,14 +23,13 @@ public:
         uint8_t orientation;
     };
 
-    explicit TileAtlas(SDL_GPUDevice* device);
+    explicit TileAtlas(SDL_GPUDevice* device, TextureLoader* textureLoader);
     TileAtlas(const TileAtlas&) = delete;
     TileAtlas& operator=(const TileAtlas&) = delete;
     ~TileAtlas();
 
     bool initialize();
-    bool loadTileFromSurface(SDL_Surface* surface, TileId id, const std::string& type,
-                             TileVariant::TextureSymmetry symmetry);
+    bool loadTileVariant(const TileVariant& variant);
 
     glm::vec4 getTileUV(const GridTile& tile) const;
 
@@ -42,6 +42,7 @@ public:
 
 private:
     SDL_GPUDevice* device;
+    TextureLoader* textureLoader;
     SDL_GPUTexture* atlasTexture = nullptr;
     SDL_GPUSampler* sampler = nullptr;
 
@@ -57,6 +58,8 @@ private:
     bool uploadTileToAtlas(SDL_Surface* surface, uint32_t slot);
     glm::vec4 calculateUV(uint32_t slot) const;
 
+    bool loadTileFromSurface(SDL_Surface* surface, TileId id, const std::string& type,
+                             TileVariant::TextureSymmetry symmetry);
     std::vector<TileAtlasVariant> loadSymmetricTile(SDL_Surface* surface, TileId id,
                                                     const std::string& type);
     std::vector<TileAtlasVariant> loadRotatableTile(SDL_Surface* surface, TileId id,
