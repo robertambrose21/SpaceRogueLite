@@ -4,7 +4,6 @@
 #include <grid.h>
 #include <tilevariant.h>
 
-#include <array>
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
@@ -12,7 +11,9 @@
 
 namespace SpaceRogueLite {
 
-constexpr int TILE_SIZE = 32;  // Pixel width/height of a tile
+constexpr int TILE_SIZE = 32;
+constexpr uint8_t SYMMETRIC_TEXTURE_SLOTS = 1;
+constexpr uint8_t ROTATABLE_TEXTURE_SLOTS = 4;
 
 class TileAtlas {
 public:
@@ -26,12 +27,9 @@ public:
     TileAtlas& operator=(const TileAtlas&) = delete;
     ~TileAtlas();
 
-    // Initialize the atlas texture (must be called before loading tiles)
     bool initialize();
-
-    // Load a tile from an existing surface (caller retains ownership and must free surface)
-    // Returns false on failure
-    bool loadTileFromSurface(SDL_Surface* surface, TileId id, const std::string& type);
+    bool loadTileFromSurface(SDL_Surface* surface, TileId id, const std::string& type,
+                             TileVariant::TextureSymmetry symmetry);
 
     glm::vec4 getTileUV(const GridTile& tile) const;
 
@@ -47,12 +45,10 @@ private:
     SDL_GPUTexture* atlasTexture = nullptr;
     SDL_GPUSampler* sampler = nullptr;
 
-    std::vector<glm::vec4> tileUVs;  // UV coordinates for each loaded tile
-    uint32_t nextSlot = 1;           // Start at 1, 0 is TILE_EMPTY
+    std::vector<glm::vec4> tileUVs;
+    uint32_t nextSlot = 1;
 
-    // Maps (TileId, type) to array of 4 TileVariants (one per orientation: 0, 90, 180, 270)
-    std::unordered_map<TileVariantKey, std::array<TileAtlasVariant, 4>, TileVariantKeyHash>
-        variants;
+    std::unordered_map<TileVariantKey, std::vector<TileAtlasVariant>, TileVariantKeyHash> variants;
 
     static constexpr uint32_t ATLAS_SIZE = 1024;
     static constexpr uint32_t TILES_PER_ROW = ATLAS_SIZE / TILE_SIZE;
@@ -60,6 +56,11 @@ private:
 
     bool uploadTileToAtlas(SDL_Surface* surface, uint32_t slot);
     glm::vec4 calculateUV(uint32_t slot) const;
+
+    std::vector<TileAtlasVariant> loadSymmetricTile(SDL_Surface* surface, TileId id,
+                                                    const std::string& type);
+    std::vector<TileAtlasVariant> loadRotatableTile(SDL_Surface* surface, TileId id,
+                                                    const std::string& type);
 };
 
 }  // namespace SpaceRogueLite

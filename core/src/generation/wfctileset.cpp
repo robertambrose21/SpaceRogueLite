@@ -70,7 +70,8 @@ void WFCTileSet::load(void) {
     for (auto const& [name, tile] : tileMapping) {
         // walkableTiles[tile.tileId] = walkableTilesJson.contains(tile.tileId);
 
-        tileVariants.insert({tile.tileId, tile.name, tile.textureId});
+        tileVariants.insert(
+            {tile.tileId, tile.name, tile.textureId, toTextureSymmetry(tile.symmetry)});
 
         switch (tile.symmetry) {
             // No symmetry
@@ -191,4 +192,12 @@ unsigned WFCTileSet::getEdgeTile(void) const {
 unsigned WFCTileSet::getRoomTile(void) const {
     validate();
     return roomTile;
+}
+
+TileVariant::TextureSymmetry WFCTileSet::toTextureSymmetry(Symmetry symmetry) {
+    if (symmetry == Symmetry::X) {
+        return TileVariant::SYMMETRIC;
+    }
+
+    return TileVariant::ROTATABLE;
 }

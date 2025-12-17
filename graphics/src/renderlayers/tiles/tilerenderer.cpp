@@ -106,10 +106,11 @@ void TileRenderer::loadTileVariantsIntoAtlas(const std::set<TileVariant>& varian
             continue;
         }
 
-        TileId tileId = atlas->loadTileFromSurface(surface, variant.tileId, variant.type);
+        bool success = atlas->loadTileFromSurface(surface, variant.tileId, variant.type,
+                                                  variant.symmetry);
         SDL_DestroySurface(surface);
 
-        if (tileId != TILE_EMPTY) {
+        if (success) {
             loadedCount++;
         }
     }

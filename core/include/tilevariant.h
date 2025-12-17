@@ -2,6 +2,7 @@
 
 #include <grid.h>
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <utility>
@@ -19,13 +20,18 @@ struct TileVariantKeyHash {
 };
 
 struct TileVariant {
+    enum TextureSymmetry : uint8_t { SYMMETRIC, ROTATABLE };
+
     TileId tileId;
     std::string type;
     uint16_t textureId;
+    TextureSymmetry symmetry;
 
     bool operator<(const TileVariant& other) const {
         if (tileId != other.tileId) return tileId < other.tileId;
-        return type < other.type;
+        if (type != other.type) return type < other.type;
+        if (textureId != other.textureId) return textureId < other.textureId;
+        return symmetry < other.symmetry;
     }
 };
 
