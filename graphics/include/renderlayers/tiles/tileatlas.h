@@ -58,8 +58,6 @@ private:
     bool uploadTileToAtlas(SDL_Surface* surface, uint32_t slot);
     glm::vec4 calculateUV(uint32_t slot) const;
 
-    bool loadTileFromSurface(SDL_Surface* surface, TileId id, const std::string& type,
-                             TileVariant::TextureSymmetry symmetry);
     std::vector<TileAtlasVariant> loadSymmetricTile(SDL_Surface* surface, TileId id,
                                                     const std::string& type);
     std::vector<TileAtlasVariant> loadRotatableTile(SDL_Surface* surface, TileId id,

@@ -101,26 +101,14 @@ bool TileAtlas::loadTileVariant(const TileVariant& variant) {
         return false;
     }
 
-    bool success = loadTileFromSurface(surface, variant.tileId, variant.type, variant.symmetry);
-    SDL_DestroySurface(surface);
-    return success;
-}
-
-bool TileAtlas::loadTileFromSurface(SDL_Surface* surface, TileId id, const std::string& type,
-                                    TileVariant::TextureSymmetry symmetry) {
-    if (!surface) {
-        spdlog::error("Cannot load tile variant '{}': null surface provided", type);
-        return false;
-    }
-
     std::vector<TileAtlasVariant> tileVariants;
 
-    switch (symmetry) {
+    switch (variant.symmetry) {
         case TileVariant::SYMMETRIC:
-            tileVariants = loadSymmetricTile(surface, id, type);
+            tileVariants = loadSymmetricTile(surface, variant.tileId, variant.type);
             break;
         case TileVariant::ROTATABLE:
-            tileVariants = loadRotatableTile(surface, id, type);
+            tileVariants = loadRotatableTile(surface, variant.tileId, variant.type);
             break;
     }
 
@@ -128,7 +116,9 @@ bool TileAtlas::loadTileFromSurface(SDL_Surface* surface, TileId id, const std::
         return false;
     }
 
-    variants[{id, type}] = std::move(tileVariants);
+    variants[{variant.tileId, variant.type}] = std::move(tileVariants);
+
+    SDL_DestroySurface(surface);
     return true;
 }
 
