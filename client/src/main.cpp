@@ -14,6 +14,7 @@
 #include <renderlayers/tiles/tileatlas.h>
 #include <renderlayers/tiles/tilerenderer.h>
 #include <window.h>
+#include <inputhandler.h>
 #include "message.h"
 #include "messagefactory.h"
 #include "net/client.h"
@@ -47,10 +48,11 @@ int main() {
         // TODO: Remove this eventually
         SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
 
+        entt::locator<SpaceRogueLite::Grid>::emplace(64, 64);
+        entt::locator<SpaceRogueLite::InputHandler>::emplace();
+
         SpaceRogueLite::Window window("SpaceRogueLite Client", 1920, 1080);
         window.initialize();
-
-        entt::locator<SpaceRogueLite::Grid>::emplace(32, 32);
 
         auto tileRenderer = window.createRenderLayer<SpaceRogueLite::TileRenderer>();
 
@@ -62,7 +64,8 @@ int main() {
 
         tileRenderer->loadTileVariantsIntoAtlas(tileSet.getTileVariants());
 
-        SpaceRogueLite::WFCStrategy wfcStrategy({2, glm::ivec2(2, 2), glm::ivec2(6, 6), 0}, tileSet);
+        SpaceRogueLite::WFCStrategy wfcStrategy({2, glm::ivec2(2, 2), glm::ivec2(6, 6), 0},
+                                                tileSet);
         auto generatedMap = wfcStrategy.generate();
 
         auto& grid = entt::locator<SpaceRogueLite::Grid>::value();

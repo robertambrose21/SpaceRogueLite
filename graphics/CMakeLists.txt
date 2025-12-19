@@ -37,6 +37,7 @@ compile_shader_to_header(
 add_library(graphics
     src/window.cpp
     src/camera.cpp
+    src/inputhandler.cpp
     src/renderlayers/tiles/tileatlas.cpp
     src/renderlayers/tiles/tilerenderer.cpp
     src/renderlayers/entities/entityrendersystem.cpp

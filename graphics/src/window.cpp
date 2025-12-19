@@ -6,6 +6,7 @@
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_sdlgpu3.h"
 #include "imgui.h"
+#include "inputhandler.h"
 
 using namespace SpaceRogueLite;
 
@@ -112,6 +113,8 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
         if (event.type == SDL_EVENT_QUIT) {
             quit = true;
         }
+
+        entt::locator<SpaceRogueLite::InputHandler>::value().handleEvent(event);
     }
 
     updateUI(timeSinceLastFrame, quit);
