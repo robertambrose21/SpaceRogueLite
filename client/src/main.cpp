@@ -9,18 +9,27 @@
 #include <generation/wfcstrategy.h>
 #include <generation/wfctileset.h>
 #include <grid.h>
+#include <inputhandler.h>
 #include <rendercomponents.h>
 #include <renderlayers/entities/entityrendersystem.h>
 #include <renderlayers/tiles/tileatlas.h>
 #include <renderlayers/tiles/tilerenderer.h>
 #include <window.h>
-#include <inputhandler.h>
 #include "message.h"
 #include "messagefactory.h"
 #include "net/client.h"
 #include "net/clientmessagehandler.h"
 #include "net/clientmessagetransmitter.h"
 #include "net/inputcommandhandler.h"
+
+struct CameraInputState {
+    bool up = false;
+    bool down = false;
+    bool left = false;
+    bool right = false;
+};
+static CameraInputState cameraInput;
+constexpr float CAMERA_SPEED = 2000.0f;
 
 int main() {
 #if !defined(NDEBUG)
@@ -48,8 +57,31 @@ int main() {
         // TODO: Remove this eventually
         SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
 
-        entt::locator<SpaceRogueLite::Grid>::emplace(64, 64);
+        entt::locator<SpaceRogueLite::Grid>::emplace(1024, 1024);
         entt::locator<SpaceRogueLite::InputHandler>::emplace();
+
+        entt::locator<SpaceRogueLite::InputHandler>::value().attachWorker(
+            {10, "CameraInput", [](const SDL_Event& event) {
+                 if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
+                     bool pressed = (event.type == SDL_EVENT_KEY_DOWN);
+                     switch (event.key.scancode) {
+                         case SDL_SCANCODE_W:
+                             cameraInput.up = pressed;
+                             break;
+                         case SDL_SCANCODE_S:
+                             cameraInput.down = pressed;
+                             break;
+                         case SDL_SCANCODE_A:
+                             cameraInput.left = pressed;
+                             break;
+                         case SDL_SCANCODE_D:
+                             cameraInput.right = pressed;
+                             break;
+                         default:
+                             break;
+                     }
+                 }
+             }});
 
         SpaceRogueLite::Window window("SpaceRogueLite Client", 1920, 1080);
         window.initialize();
@@ -75,7 +107,7 @@ int main() {
 
         // Create a test entity with a spaceworm sprite
         auto testEntity = registry.create();
-        registry.emplace<SpaceRogueLite::Position>(testEntity, 100, 100);
+        registry.emplace<SpaceRogueLite::Position>(testEntity, 1900, 100);
         registry.emplace<SpaceRogueLite::Renderable>(
             testEntity, glm::vec2(32.0f, 32.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), "SpaceWorm");
 
@@ -92,6 +124,21 @@ int main() {
             {3, "InputHandler", [&inputHandler](int64_t timeSinceLastFrame, bool& quit) {
                  inputHandler.processCommands(timeSinceLastFrame);
              }});
+
+        game.attachWorker({4, "CameraMovement", [&window](int64_t timeSinceLastFrame, bool& quit) {
+                               float deltaSeconds = timeSinceLastFrame / 1000.0f;
+                               float moveAmount = CAMERA_SPEED * deltaSeconds;
+
+                               float dx = 0.0f, dy = 0.0f;
+                               if (cameraInput.up) dy -= moveAmount;
+                               if (cameraInput.down) dy += moveAmount;
+                               if (cameraInput.left) dx -= moveAmount;
+                               if (cameraInput.right) dx += moveAmount;
+
+                               if (dx != 0.0f || dy != 0.0f) {
+                                   window.getCamera()->move(dx, dy);
+                               }
+                           }});
 
         client.connect();
 

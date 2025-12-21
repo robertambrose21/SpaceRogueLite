@@ -52,6 +52,7 @@ public:
     }
 
     TextureLoader* getTextureLoader();
+    Camera* getCamera();
 
     void update(int64_t timeSinceLastFrame, bool& quit);
     void updateUI(int64_t timeSinceLastFrame, bool& quit);
