@@ -43,9 +43,9 @@ std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::run(int numAttempts,
     auto neighbours = tileSet.getNeighbours();
 
     for (int i = 0; i < numAttempts; i++) {
-        seed = randomRange(0, INT_MAX);
+        seed = Utils::randomRange(0, INT_MAX);
         // seed = 1969591651;
-        setRandomGeneratorSeed(seed);
+        Utils::setRandomGeneratorSeed(seed);
         auto success = runAttempt(seed);
 
         if (success.has_value()) {
@@ -95,8 +95,8 @@ void WFCStrategy::generateRoomsAndPaths(TilingWFC<WFCTileSet::WFCTile>& wfc) {
         auto room = generateRoom(wfc, getRooms());
         addRoom(room);
 
-        roomCenterPoints.push_back(
-            glm::ivec2(randomRange(room.min.x, room.max.x), randomRange(room.min.y, room.max.y)));
+        roomCenterPoints.push_back(glm::ivec2(Utils::randomRange(room.min.x, room.max.x),
+                                              Utils::randomRange(room.min.y, room.max.y)));
     }
 
     std::sort(roomCenterPoints.begin(), roomCenterPoints.end());
@@ -135,13 +135,13 @@ GenerationStrategy::Room WFCStrategy::generateRoom(TilingWFC<WFCTileSet::WFCTile
 }
 
 GenerationStrategy::Room WFCStrategy::createRandomRoom(void) {
-    int roomSizeX =
-        randomRange(getRoomConfiguration().minRoomSize.x, getRoomConfiguration().maxRoomSize.x);
-    int roomSizeY =
-        randomRange(getRoomConfiguration().minRoomSize.y, getRoomConfiguration().maxRoomSize.y);
+    int roomSizeX = Utils::randomRange(getRoomConfiguration().minRoomSize.x,
+                                       getRoomConfiguration().maxRoomSize.x);
+    int roomSizeY = Utils::randomRange(getRoomConfiguration().minRoomSize.y,
+                                       getRoomConfiguration().maxRoomSize.y);
 
-    int roomX = randomRange(1, getWidth() - roomSizeX - 1);
-    int roomY = randomRange(1, getHeight() - roomSizeY - 1);
+    int roomX = Utils::randomRange(1, getWidth() - roomSizeX - 1);
+    int roomY = Utils::randomRange(1, getHeight() - roomSizeY - 1);
 
     return {glm::ivec2(roomX, roomY), glm::ivec2(roomX + roomSizeX, roomY + roomSizeY)};
 }
