@@ -24,8 +24,9 @@ class YojimboConan(ConanFile):
         git.clone("https://github.com/mas-bandwidth/yojimbo.git", target=str(src))
         git.checkout("tags/"+self.version)
 
-        # Patch broken reliable.c
+        # Patch broken reliable.c/serialize.h
         patch(self, patch_file=os.path.join(self.export_sources_folder, "patch/reliable.patch"))
+        patch(self, patch_file=os.path.join(self.export_sources_folder, "patch/serialize.patch"))
 
     def requirements(self):
         self.requires("libsodium/1.0.20")

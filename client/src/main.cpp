@@ -57,7 +57,7 @@ int main() {
         // TODO: Remove this eventually
         SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
 
-        entt::locator<SpaceRogueLite::Grid>::emplace(1024, 1024);
+        entt::locator<SpaceRogueLite::Grid>::emplace(128, 128);
         entt::locator<SpaceRogueLite::InputHandler>::emplace();
 
         entt::locator<SpaceRogueLite::InputHandler>::value().attachWorker(
