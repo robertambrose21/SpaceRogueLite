@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <fastwfc/wfc.hpp>
 #include <functional>
+#include <glm/glm.hpp>
 #include <string>
 #include <vector>
 
@@ -60,6 +61,8 @@ public:
 
     void forEachTile(std::function<void(int x, int y, const GridTile&)> callback) const;
 
+    std::vector<glm::ivec2> getIntersections(const glm::vec2& p1, const glm::vec2& p2);
+
 private:
     int width;
     int height;
@@ -70,6 +73,12 @@ private:
 
     void expandDirtyRegion(int x, int y);
     bool isValidPosition(int x, int y) const;
+
+    // Line intersection
+    float pointOnLineSide(const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& point);
+    bool hasPointsOnDifferentSides(const glm::vec2& p1, const glm::vec2& p2,
+                                   const std::vector<glm::vec2>& corners);
+    bool hasTileIntersection(const glm::vec2& p1, const glm::vec2& p2, int x, int y);
 };
 
 }  // namespace SpaceRogueLite

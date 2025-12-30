@@ -85,10 +85,11 @@ void WFCStrategy::generateMapEdge(TilingWFC<WFCTileSet::WFCTile>& wfc) {
 }
 
 void WFCStrategy::generateRoomsAndPaths(TilingWFC<WFCTileSet::WFCTile>& wfc) {
+    auto& grid = entt::locator<SpaceRogueLite::Grid>::value();
+    std::vector<glm::ivec2> roomCenterPoints;
+
     auto numRooms = getRoomConfiguration().numRooms;
     clearRooms();
-
-    std::vector<glm::ivec2> roomCenterPoints;
 
     for (int i = 0; i < numRooms; i++) {
         auto room = generateRoom(wfc, getRooms());
@@ -103,12 +104,11 @@ void WFCStrategy::generateRoomsAndPaths(TilingWFC<WFCTileSet::WFCTile>& wfc) {
     for (int i = 1; i < roomCenterPoints.size(); i++) {
         auto p1 = roomCenterPoints[i - 1];
         auto p2 = roomCenterPoints[i];
-        // auto intersections = grid->getIntersections(roomCenterPoints[i - 1],
-        // roomCenterPoints[i]);
+        auto intersections = grid.getIntersections(roomCenterPoints[i - 1], roomCenterPoints[i]);
 
-        // for (auto intersection : intersections) {
-        //     wfc.set_tile(tileSet.getRoomTile(), 0, intersection.y, intersection.x);
-        // }
+        for (auto intersection : intersections) {
+            wfc.set_tile(tileSet.getRoomTile(), 0, intersection.y, intersection.x);
+        }
     }
 }
 
