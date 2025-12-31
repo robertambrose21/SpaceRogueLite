@@ -26,6 +26,7 @@ set_target_properties(core PROPERTIES PUBLIC_HEADER
     "include/utils/timing.h",
     "include/utils/randomutils.h",
     "include/generation/generationstrategy.h",
+    "include/generation/tileset.h",
     "include/generation/wfctileset.h",
     "include/generation/wfcstrategy.h")
 install(TARGETS core)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <generation/tileset.h>
 #include <grid.h>
 #include <tilevariant.h>
 #include <fastwfc/tiling_wfc.hpp>
@@ -19,7 +20,7 @@ using json = nlohmann::json;
 
 namespace SpaceRogueLite {
 
-class WFCTileSet {
+class WFCTileSet : public TileSet {
 public:
     typedef struct _wfcTile {
         TileId tileId;
@@ -33,18 +34,18 @@ public:
     WFCTileSet(const std::string& rulesFile);
 
     const std::vector<Tile<WFCTile>>& getTiles(void) const;
-    const std::set<TileVariant>& getTileVariants(void) const;
+    const std::set<TileVariant>& getTileVariants(void) const override;
     const std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>>& getNeighbours(
         void) const;
 
-    const std::map<TileId, bool>& getWalkableTiles(void) const;
-    GridTile::Walkability getTileWalkability(TileId id);
+    const std::map<TileId, bool>& getWalkableTiles(void) const override;
+    GridTile::Walkability getTileWalkability(TileId id) override;
 
-    TileId getEdgeTile(void) const;
-    TileId getRoomTile(void) const;
+    TileId getEdgeTile(void) const override;
+    TileId getRoomTile(void) const override;
 
-    void load(void);
-    void reset(void);
+    void load(void) override;
+    void reset(void) override;
 
 private:
     Symmetry getSymmetry(char symmetry);
