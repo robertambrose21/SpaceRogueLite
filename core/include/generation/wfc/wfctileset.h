@@ -33,7 +33,7 @@ public:
 
     WFCTileSet(const std::string& rulesFile);
 
-    const std::vector<Tile<WFCTile>>& getTiles(void) const;
+    const std::vector<Tile<WFCTile>>& getWFCTileVariants(void) const;
     const std::set<TileVariant>& getTileVariants(void) const override;
     const std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>>& getNeighbours(
         void) const;

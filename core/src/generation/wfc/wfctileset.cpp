@@ -146,7 +146,9 @@ Symmetry WFCTileSet::getSymmetry(char symmetry) {
     }
 }
 
-const std::vector<Tile<WFCTileSet::WFCTile>>& WFCTileSet::getTiles(void) const { return tiles; }
+const std::vector<Tile<WFCTileSet::WFCTile>>& WFCTileSet::getWFCTileVariants(void) const {
+    return tiles;
+}
 
 const std::set<TileVariant>& WFCTileSet::getTileVariants(void) const { return tileVariants; }
 

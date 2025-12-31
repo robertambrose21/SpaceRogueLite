@@ -39,9 +39,6 @@ std::vector<GridTile> WFCStrategy::generate(void) {
 
 std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::run(int numAttempts,
                                                              int& successfulAttempt, int& seed) {
-    auto wfcTiles = tileSet.getTiles();
-    auto neighbours = tileSet.getNeighbours();
-
     for (int i = 0; i < numAttempts; i++) {
         seed = Utils::randomRange(0, INT_MAX);
         // seed = 1969591651;
@@ -62,7 +59,7 @@ std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::run(int numAttempts,
 }
 
 std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::runAttempt(int seed) {
-    auto wfcTiles = tileSet.getTiles();
+    auto wfcTiles = tileSet.getWFCTileVariants();
     auto neighbours = tileSet.getNeighbours();
 
     TilingWFC<WFCTileSet::WFCTile> wfc(wfcTiles, neighbours, getHeight(), getWidth(), {false},
