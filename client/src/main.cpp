@@ -6,8 +6,8 @@
 #include <actorspawner.h>
 #include <components.h>
 #include <game.h>
-#include <generation/wfcstrategy.h>
-#include <generation/wfctileset.h>
+#include <generation/wfc/wfcstrategy.h>
+#include <generation/wfc/wfctileset.h>
 #include <grid.h>
 #include <inputhandler.h>
 #include <rendercomponents.h>

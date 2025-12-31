@@ -10,7 +10,7 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include "generationstrategy.h"
+#include "generation/generationstrategy.h"
 #include "wfctileset.h"
 
 namespace SpaceRogueLite {

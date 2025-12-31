@@ -1,4 +1,4 @@
-#include "generation/wfcstrategy.h"
+#include "generation/wfc/wfcstrategy.h"
 #include "utils/randomutils.h"
 #include "utils/timing.h"
 

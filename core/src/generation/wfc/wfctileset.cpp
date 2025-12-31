@@ -1,4 +1,4 @@
-#include "generation/wfctileset.h"
+#include "generation/wfc/wfctileset.h"
 
 #include <spdlog/spdlog.h>
 
