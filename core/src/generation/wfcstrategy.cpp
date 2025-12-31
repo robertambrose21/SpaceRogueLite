@@ -99,7 +99,10 @@ void WFCStrategy::generateRoomsAndPaths(TilingWFC<WFCTileSet::WFCTile>& wfc) {
                                               Utils::randomRange(room.min.y, room.max.y)));
     }
 
-    std::sort(roomCenterPoints.begin(), roomCenterPoints.end());
+    std::sort(roomCenterPoints.begin(), roomCenterPoints.end(),
+              [](const glm::ivec2& a, const glm::ivec2& b) {
+                  return a.x < b.x || (a.x == b.x && a.y < b.y);
+              });
 
     for (int i = 1; i < roomCenterPoints.size(); i++) {
         auto p1 = roomCenterPoints[i - 1];
