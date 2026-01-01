@@ -10,7 +10,7 @@
 #include <format>
 #include <fstream>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <set>
@@ -39,7 +39,7 @@ public:
     const std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>>& getNeighbours(
         void) const;
 
-    const std::map<TileId, bool>& getWalkableTiles(void) const override;
+    const std::unordered_map<TileId, bool>& getWalkableTiles(void) const override;
     GridTile::Walkability getTileWalkability(TileId id) override;
 
     unsigned getEdgeTileIndex(void) const override;
@@ -52,10 +52,10 @@ private:
     Symmetry getSymmetry(const std::string& symmetry);
     static TileVariant::TextureSymmetry toTextureSymmetry(Symmetry symmetry);
 
-    std::optional<std::map<std::string, WFCTile>> parseTileDefinitions(const json& tilesJson);
+    std::optional<std::unordered_map<std::string, WFCTile>> parseTileDefinitions(const json& tilesJson);
     std::optional<Tile<WFCTile>> buildWFCTile(const WFCTile& tile);
     void parseNeighbours(const json& neighboursJson,
-                         const std::map<std::string, unsigned>& nameToIndex);
+                         const std::unordered_map<std::string, unsigned>& nameToIndex);
 
     bool isError;
     bool isLoaded;
@@ -63,7 +63,7 @@ private:
 
     std::vector<Tile<WFCTile>> tiles;
     std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>> neighbours;
-    std::map<TileId, bool> walkableTiles;
+    std::unordered_map<TileId, bool> walkableTiles;
     std::set<TileVariant> tileVariants;
 
     unsigned edgeTileIndex;

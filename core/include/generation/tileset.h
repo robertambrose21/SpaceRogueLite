@@ -3,8 +3,8 @@
 #include <grid.h>
 #include <tilevariant.h>
 
-#include <map>
 #include <set>
+#include <unordered_map>
 
 namespace SpaceRogueLite {
 
@@ -13,7 +13,7 @@ public:
     virtual ~TileSet() = default;
 
     virtual const std::set<TileVariant>& getTileVariants() const = 0;
-    virtual const std::map<TileId, bool>& getWalkableTiles() const = 0;
+    virtual const std::unordered_map<TileId, bool>& getWalkableTiles() const = 0;
     virtual GridTile::Walkability getTileWalkability(TileId id) = 0;
 
     virtual unsigned getEdgeTileIndex() const = 0;

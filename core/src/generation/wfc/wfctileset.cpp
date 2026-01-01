@@ -38,7 +38,7 @@ void WFCTileSet::load(void) {
     }
 
     auto walkableSet = data["walkableTiles"].get<std::set<unsigned>>();
-    std::map<std::string, unsigned> nameToIndex;
+    std::unordered_map<std::string, unsigned> nameToIndex;
     unsigned index = 0;
 
     for (const auto& [name, tile] : *tilesByName) {
@@ -66,9 +66,9 @@ void WFCTileSet::load(void) {
     isLoaded = true;
 }
 
-std::optional<std::map<std::string, WFCTileSet::WFCTile>> WFCTileSet::parseTileDefinitions(
+std::optional<std::unordered_map<std::string, WFCTileSet::WFCTile>> WFCTileSet::parseTileDefinitions(
     const json& tilesJson) {
-    std::map<std::string, WFCTile> tilesByName;
+    std::unordered_map<std::string, WFCTile> tilesByName;
 
     for (const auto& tileJson : tilesJson) {
         auto name = tileJson["type"].get<std::string>();
@@ -121,7 +121,7 @@ std::optional<Tile<WFCTileSet::WFCTile>> WFCTileSet::buildWFCTile(const WFCTile&
 }
 
 void WFCTileSet::parseNeighbours(const json& neighboursJson,
-                                 const std::map<std::string, unsigned>& nameToIndex) {
+                                 const std::unordered_map<std::string, unsigned>& nameToIndex) {
     for (const auto& neighbour : neighboursJson) {
         neighbours.push_back({
             nameToIndex.at(neighbour["left"].get<std::string>()),
@@ -178,7 +178,7 @@ const std::vector<std::tuple<unsigned, unsigned, unsigned, unsigned>>& WFCTileSe
     return neighbours;
 }
 
-const std::map<TileId, bool>& WFCTileSet::getWalkableTiles(void) const { return walkableTiles; }
+const std::unordered_map<TileId, bool>& WFCTileSet::getWalkableTiles(void) const { return walkableTiles; }
 
 GridTile::Walkability WFCTileSet::getTileWalkability(TileId id) {
     if (walkableTiles.contains(id)) {
