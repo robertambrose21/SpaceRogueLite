@@ -34,9 +34,18 @@ compile_shader_to_header(
     SHADER_NAME colored_quad
 )
 
+compile_shader_to_header(
+    VERTEX_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/chunk_display.vert.hlsl
+    FRAGMENT_SHADER ${CMAKE_CURRENT_SOURCE_DIR}/shaders/chunk_display.frag.hlsl
+    OUTPUT_HEADER ${CMAKE_CURRENT_BINARY_DIR}/include/shaders/chunk_display_shaders.h
+    SHADER_NAME chunk_display
+)
+
 add_library(graphics
     src/window.cpp
     src/camera.cpp
+    src/inputhandler.cpp
+    include/utils.h
     src/renderlayers/tiles/tileatlas.cpp
     src/renderlayers/tiles/tilerenderer.cpp
     src/renderlayers/entities/entityrendersystem.cpp

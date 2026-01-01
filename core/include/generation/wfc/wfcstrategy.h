@@ -1,5 +1,6 @@
 #pragma once
 
+#include <grid.h>
 #include <spdlog/spdlog.h>
 #include <fastwfc/tiling_wfc.hpp>
 #include <fastwfc/utils/array2D.hpp>
@@ -9,27 +10,8 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include "generationstrategy.h"
+#include "generation/generationstrategy.h"
 #include "wfctileset.h"
-
-namespace glm {
-
-// Fix using glm vec2s as keys
-template <typename T, precision P>
-bool operator<(const tvec2<T, P>& a, const tvec2<T, P>& b) {
-    return (a.x < b.x || (a.x == b.x && a.y < b.y));
-}
-
-struct ivec2Hash {
-    std::size_t operator()(const ivec2& v) const noexcept {
-        std::size_t h1 = std::hash<int>{}(v.x);
-        std::size_t h2 = std::hash<int>{}(v.y);
-
-        return h1 ^ (h2 << 1);
-    }
-};
-
-}  // namespace glm
 
 namespace SpaceRogueLite {
 

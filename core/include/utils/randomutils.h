@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <random>
 
+namespace SpaceRogueLite::Utils {
+
 inline std::mt19937& getRandomGenerator() {
     static std::random_device dev;
     static std::mt19937 rng(dev());
@@ -45,3 +47,5 @@ inline T randomChoice(const std::vector<T>& vec, const std::vector<int>& weights
 
     return vec[dist(generator)];
 }
+
+}  // namespace SpaceRogueLite::Utils

@@ -12,19 +12,21 @@ add_library(core
     src/actorspawner.cpp 
     src/grid.cpp 
     src/generation/generationstrategy.cpp
-    src/generation/wfctileset.cpp
-    src/generation/wfcstrategy.cpp)
+    src/generation/wfc/wfctileset.cpp
+    src/generation/wfc/wfcstrategy.cpp)
 set_target_properties(core PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 20)
 target_link_libraries(core PUBLIC EnTT::EnTT spdlog::spdlog nlohmann_json::nlohmann_json)
 target_include_directories(core PUBLIC include)
 
-set_target_properties(core PROPERTIES PUBLIC_HEADER 
-    "include/game.h", 
-    "include/actorspawner.h", 
-    "include/components.h", 
+set_target_properties(core PROPERTIES PUBLIC_HEADER
+    "include/game.h",
+    "include/actorspawner.h",
+    "include/components.h",
+    "include/tilevariant.h",
     "include/utils/timing.h",
     "include/utils/randomutils.h",
     "include/generation/generationstrategy.h",
-    "include/generation/wfctileset.h",
-    "include/generation/wfcstrategy.h")
+    "include/generation/tileset.h",
+    "include/generation/wfc/wfctileset.h",
+    "include/generation/wfc/wfcstrategy.h")
 install(TARGETS core)

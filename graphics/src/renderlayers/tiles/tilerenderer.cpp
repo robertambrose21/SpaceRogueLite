@@ -5,7 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <nlohmann/json.hpp>
 
-#include "shaders/textured_quad_shaders.h"
+#include "shaders/chunk_display_shaders.h"
 #include "shaders/tilecompose_shaders.h"
 
 using json = nlohmann::json;
@@ -17,7 +17,7 @@ TileRenderer::TileRenderer() : RenderLayer("TileRenderer") {}
 TileRenderer::~TileRenderer() { shutdown(); }
 
 bool TileRenderer::initialize() {
-    atlas = std::make_unique<TileAtlas>(device);
+    atlas = std::make_unique<TileAtlas>(device, textureLoader);
     if (!atlas->initialize()) {
         spdlog::error("Failed to initialize tile atlas");
         return false;
@@ -35,6 +35,9 @@ bool TileRenderer::initialize() {
     if (!createQuadVertexBuffer()) {
         return false;
     }
+    if (!createChunkSampler()) {
+        return false;
+    }
 
     spdlog::debug("TileRenderer initialized");
     return true;
@@ -43,25 +46,31 @@ bool TileRenderer::initialize() {
 void TileRenderer::shutdown() {
     SDL_WaitForGPUIdle(device);
 
-    if (displayVertexBuffer) {
-        SDL_ReleaseGPUBuffer(device, displayVertexBuffer);
-        displayVertexBuffer = nullptr;
+    destroyAllChunks();
+
+    if (chunkSampler) {
+        SDL_ReleaseGPUSampler(device, chunkSampler);
+        chunkSampler = nullptr;
     }
-    if (bakedSampler) {
-        SDL_ReleaseGPUSampler(device, bakedSampler);
-        bakedSampler = nullptr;
+    if (chunkTextureArray) {
+        SDL_ReleaseGPUTexture(device, chunkTextureArray);
+        chunkTextureArray = nullptr;
     }
-    if (bakedTexture) {
-        SDL_ReleaseGPUTexture(device, bakedTexture);
-        bakedTexture = nullptr;
+    if (chunkInstanceTransfer) {
+        SDL_ReleaseGPUTransferBuffer(device, chunkInstanceTransfer);
+        chunkInstanceTransfer = nullptr;
     }
-    if (instanceTransfer) {
-        SDL_ReleaseGPUTransferBuffer(device, instanceTransfer);
-        instanceTransfer = nullptr;
+    if (chunkInstanceBuffer) {
+        SDL_ReleaseGPUBuffer(device, chunkInstanceBuffer);
+        chunkInstanceBuffer = nullptr;
     }
-    if (instanceBuffer) {
-        SDL_ReleaseGPUBuffer(device, instanceBuffer);
-        instanceBuffer = nullptr;
+    if (tileInstanceTransfer) {
+        SDL_ReleaseGPUTransferBuffer(device, tileInstanceTransfer);
+        tileInstanceTransfer = nullptr;
+    }
+    if (tileInstanceBuffer) {
+        SDL_ReleaseGPUBuffer(device, tileInstanceBuffer);
+        tileInstanceBuffer = nullptr;
     }
     if (quadVertexBuffer) {
         SDL_ReleaseGPUBuffer(device, quadVertexBuffer);
@@ -95,56 +104,18 @@ void TileRenderer::shutdown() {
     atlas.reset();
 }
 
-std::map<std::string, TileId> TileRenderer::loadTilesFromRules(const std::string& rulesPath) {
-    std::map<std::string, TileId> tileIds;
+void TileRenderer::loadTileVariantsIntoAtlas(const std::set<TileVariant>& variants) {
+    uint32_t loadedCount = 0;
 
-    std::ifstream f(rulesPath);
-    if (!f.is_open()) {
-        spdlog::error("Failed to open rules file: {}", rulesPath);
-        return tileIds;
-    }
-
-    json data;
-    try {
-        data = json::parse(f);
-    } catch (const json::parse_error& e) {
-        spdlog::error("Failed to parse rules file {}: {}", rulesPath, e.what());
-        return tileIds;
-    }
-
-    if (!data.contains("tiles") || !data["tiles"].is_array()) {
-        spdlog::error("Rules file {} missing 'tiles' array", rulesPath);
-        return tileIds;
-    }
-
-    for (const auto& tile : data["tiles"]) {
-        if (!tile.contains("name") || !tile.contains("textureId")) {
-            spdlog::warn("Skipping tile with missing name or textureId in {}", rulesPath);
-            continue;
-        }
-
-        std::string tileName = tile["name"].get<std::string>();
-        int textureId = tile["textureId"].get<int>();
-
-        SDL_Surface* surface = textureLoader->loadSurfaceById(textureId);
-        if (!surface) {
-            spdlog::error("Failed to load surface for tile '{}' (textureId: {})", tileName,
-                          textureId);
-            continue;
-        }
-
-        TileId tileId = atlas->loadTileFromSurface(surface, tileName);
-        SDL_DestroySurface(surface);
-
-        if (tileId != TILE_EMPTY) {
-            tileIds[tileName] = tileId;
+    for (const auto& variant : variants) {
+        if (atlas->loadTileVariant(variant)) {
+            loadedCount++;
         }
     }
 
     invalidateCache();
 
-    spdlog::info("Loaded {} tiles from rules file: {}", tileIds.size(), rulesPath);
-    return tileIds;
+    spdlog::info("Loaded {}/{} tile variants into atlas", loadedCount, variants.size());
 }
 
 void TileRenderer::prepareFrame(SDL_GPUCommandBuffer* commandBuffer) {
@@ -152,42 +123,46 @@ void TileRenderer::prepareFrame(SDL_GPUCommandBuffer* commandBuffer) {
         return;
     }
 
-    auto grid = entt::locator<Grid>::value();
+    auto& grid = entt::locator<Grid>::value();
 
     if (!atlas || grid.getWidth() == 0 || grid.getHeight() == 0) {
         return;
     }
 
-    uint32_t requiredWidth = grid.getWidth() * TILE_SIZE;
-    uint32_t requiredHeight = grid.getHeight() * TILE_SIZE;
+    updateChunkGrid();
 
-    if (bakedWidth != requiredWidth || bakedHeight != requiredHeight) {
-        if (!createRenderTarget(requiredWidth, requiredHeight)) {
-            return;
+    if (!cacheValid) {
+        for (auto& [coord, chunk] : chunks) {
+            chunk.isDirty = true;
         }
-        cacheValid = false;
+
+        cacheValid = true;
+    } else if (grid.isDirty()) {
+        markDirtyChunksFromRegion(grid.getDirtyRegion());
     }
 
-    if (!cacheValid || grid.isDirty()) {
-        rebakeTiles(commandBuffer);
-        grid.clearDirty();
-        cacheValid = true;
-    }
+    grid.clearDirty();
+
+    rebakeDirtyChunks(commandBuffer);
+    uploadChunkInstances(commandBuffer);
 }
 
 void TileRenderer::render(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass,
                           const Camera& camera) {
-    if (!bakedTexture || bakedWidth == 0 || bakedHeight == 0) {
-        return;
-    }
-
-    renderBakedTexture(commandBuffer, renderPass, camera);
+    renderVisibleChunks(commandBuffer, renderPass, camera);
 }
 
-void TileRenderer::invalidateCache() { cacheValid = false; }
+void TileRenderer::invalidateCache() {
+    cacheValid = false;
+
+    // Also invalidate visibility cache and force re-upload
+    cachedCameraPos = glm::vec2(-1.0f, -1.0f);
+    cachedVisibleChunks.clear();
+    chunkInstancesNeedUpload = true;
+}
 
 bool TileRenderer::createShaders() {
-    // Compose vertex shader
+    // Compose vertex shader (tiles to chunk texture)
     SDL_GPUShaderCreateInfo vertexInfo = {};
     vertexInfo.code = tilecompose_spirv_vertex;
     vertexInfo.code_size = sizeof(tilecompose_spirv_vertex);
@@ -223,10 +198,10 @@ bool TileRenderer::createShaders() {
         return false;
     }
 
-    // Display vertex shader
+    // Display vertex shader (chunks to screen, batched with texture array)
     SDL_GPUShaderCreateInfo displayVertInfo = {};
-    displayVertInfo.code = textured_quad_spirv_vertex;
-    displayVertInfo.code_size = sizeof(textured_quad_spirv_vertex);
+    displayVertInfo.code = chunk_display_spirv_vertex;
+    displayVertInfo.code_size = sizeof(chunk_display_spirv_vertex);
     displayVertInfo.entrypoint = "main";
     displayVertInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
     displayVertInfo.stage = SDL_GPU_SHADERSTAGE_VERTEX;
@@ -241,10 +216,10 @@ bool TileRenderer::createShaders() {
         return false;
     }
 
-    // Display fragment shader
+    // Display fragment shader (samples from texture array)
     SDL_GPUShaderCreateInfo displayFragInfo = {};
-    displayFragInfo.code = textured_quad_spirv_fragment;
-    displayFragInfo.code_size = sizeof(textured_quad_spirv_fragment);
+    displayFragInfo.code = chunk_display_spirv_fragment;
+    displayFragInfo.code_size = sizeof(chunk_display_spirv_fragment);
     displayFragInfo.entrypoint = "main";
     displayFragInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
     displayFragInfo.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
@@ -263,7 +238,6 @@ bool TileRenderer::createShaders() {
 }
 
 bool TileRenderer::createComposePipeline() {
-    // Vertex buffer descriptions
     SDL_GPUVertexBufferDescription vertexBufferDescs[2] = {};
 
     // Slot 0: Per-vertex quad data
@@ -348,29 +322,58 @@ bool TileRenderer::createComposePipeline() {
 }
 
 bool TileRenderer::createDisplayPipeline() {
-    // Simple vertex buffer for position + texcoord
-    SDL_GPUVertexBufferDescription vertexBufferDesc = {};
-    vertexBufferDesc.slot = 0;
-    vertexBufferDesc.pitch = sizeof(QuadVertex);
-    vertexBufferDesc.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
-    vertexBufferDesc.instance_step_rate = 0;
+    SDL_GPUVertexBufferDescription vertexBufferDescs[2] = {};
 
-    SDL_GPUVertexAttribute vertexAttributes[2] = {};
+    // Slot 0: Per-vertex quad data (unit quad)
+    vertexBufferDescs[0].slot = 0;
+    vertexBufferDescs[0].pitch = sizeof(QuadVertex);
+    vertexBufferDescs[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+    vertexBufferDescs[0].instance_step_rate = 0;
+
+    // Slot 1: Per-instance chunk data
+    vertexBufferDescs[1].slot = 1;
+    vertexBufferDescs[1].pitch = sizeof(ChunkInstance);
+    vertexBufferDescs[1].input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE;
+    vertexBufferDescs[1].instance_step_rate = 0;
+
+    // Vertex attributes
+    SDL_GPUVertexAttribute vertexAttributes[5] = {};
+
+    // Per-vertex: localPos (location 0)
     vertexAttributes[0].location = 0;
     vertexAttributes[0].buffer_slot = 0;
     vertexAttributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
     vertexAttributes[0].offset = offsetof(QuadVertex, position);
 
+    // Per-vertex: localUV (location 1)
     vertexAttributes[1].location = 1;
     vertexAttributes[1].buffer_slot = 0;
     vertexAttributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
     vertexAttributes[1].offset = offsetof(QuadVertex, texCoord);
 
+    // Per-instance: chunkWorldPos (location 2)
+    vertexAttributes[2].location = 2;
+    vertexAttributes[2].buffer_slot = 1;
+    vertexAttributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+    vertexAttributes[2].offset = offsetof(ChunkInstance, worldPos);
+
+    // Per-instance: chunkSize (location 3)
+    vertexAttributes[3].location = 3;
+    vertexAttributes[3].buffer_slot = 1;
+    vertexAttributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+    vertexAttributes[3].offset = offsetof(ChunkInstance, size);
+
+    // Per-instance: layerIndex (location 4)
+    vertexAttributes[4].location = 4;
+    vertexAttributes[4].buffer_slot = 1;
+    vertexAttributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
+    vertexAttributes[4].offset = offsetof(ChunkInstance, layerIndex);
+
     SDL_GPUVertexInputState vertexInputState = {};
-    vertexInputState.vertex_buffer_descriptions = &vertexBufferDesc;
-    vertexInputState.num_vertex_buffers = 1;
+    vertexInputState.vertex_buffer_descriptions = vertexBufferDescs;
+    vertexInputState.num_vertex_buffers = 2;
     vertexInputState.vertex_attributes = vertexAttributes;
-    vertexInputState.num_vertex_attributes = 2;
+    vertexInputState.num_vertex_attributes = 5;
 
     // Use swapchain format for display
     SDL_GPUColorTargetDescription colorTargetDesc = {};
@@ -453,38 +456,7 @@ bool TileRenderer::createQuadVertexBuffer() {
     return true;
 }
 
-bool TileRenderer::createRenderTarget(uint32_t width, uint32_t height) {
-    // Release old resources
-    if (displayVertexBuffer) {
-        SDL_ReleaseGPUBuffer(device, displayVertexBuffer);
-        displayVertexBuffer = nullptr;
-    }
-    if (bakedSampler) {
-        SDL_ReleaseGPUSampler(device, bakedSampler);
-        bakedSampler = nullptr;
-    }
-    if (bakedTexture) {
-        SDL_ReleaseGPUTexture(device, bakedTexture);
-        bakedTexture = nullptr;
-    }
-
-    // Create render target texture
-    SDL_GPUTextureCreateInfo textureInfo = {};
-    textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
-    textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-    textureInfo.width = width;
-    textureInfo.height = height;
-    textureInfo.layer_count_or_depth = 1;
-    textureInfo.num_levels = 1;
-    textureInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
-
-    bakedTexture = SDL_CreateGPUTexture(device, &textureInfo);
-    if (!bakedTexture) {
-        spdlog::error("Failed to create baked texture: {}", SDL_GetError());
-        return false;
-    }
-
-    // Create sampler for baked texture
+bool TileRenderer::createChunkSampler() {
     SDL_GPUSamplerCreateInfo samplerInfo = {};
     samplerInfo.min_filter = SDL_GPU_FILTER_NEAREST;
     samplerInfo.mag_filter = SDL_GPU_FILTER_NEAREST;
@@ -493,73 +465,226 @@ bool TileRenderer::createRenderTarget(uint32_t width, uint32_t height) {
     samplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     samplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 
-    bakedSampler = SDL_CreateGPUSampler(device, &samplerInfo);
-    if (!bakedSampler) {
-        spdlog::error("Failed to create baked sampler: {}", SDL_GetError());
+    chunkSampler = SDL_CreateGPUSampler(device, &samplerInfo);
+    if (!chunkSampler) {
+        spdlog::error("Failed to create chunk sampler: {}", SDL_GetError());
         return false;
     }
-
-    // Create display vertex buffer (full size quad)
-    float w = static_cast<float>(width);
-    float h = static_cast<float>(height);
-
-    QuadVertex displayVertices[6] = {
-        {{0.0f, 0.0f}, {0.0f, 0.0f}}, {{w, 0.0f}, {1.0f, 0.0f}}, {{0.0f, h}, {0.0f, 1.0f}},
-        {{w, 0.0f}, {1.0f, 0.0f}},    {{w, h}, {1.0f, 1.0f}},    {{0.0f, h}, {0.0f, 1.0f}},
-    };
-
-    SDL_GPUBufferCreateInfo bufferInfo = {};
-    bufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-    bufferInfo.size = sizeof(displayVertices);
-
-    displayVertexBuffer = SDL_CreateGPUBuffer(device, &bufferInfo);
-    if (!displayVertexBuffer) {
-        spdlog::error("Failed to create display vertex buffer: {}", SDL_GetError());
-        return false;
-    }
-
-    // Upload display vertices
-    SDL_GPUTransferBufferCreateInfo transferInfo = {};
-    transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    transferInfo.size = sizeof(displayVertices);
-
-    SDL_GPUTransferBuffer* transfer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
-    void* data = SDL_MapGPUTransferBuffer(device, transfer, false);
-    SDL_memcpy(data, displayVertices, sizeof(displayVertices));
-    SDL_UnmapGPUTransferBuffer(device, transfer);
-
-    SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(device);
-    SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(commandBuffer);
-
-    SDL_GPUTransferBufferLocation src = {transfer, 0};
-    SDL_GPUBufferRegion dst = {displayVertexBuffer, 0, sizeof(displayVertices)};
-    SDL_UploadToGPUBuffer(copyPass, &src, &dst, false);
-
-    SDL_EndGPUCopyPass(copyPass);
-    SDL_SubmitGPUCommandBuffer(commandBuffer);
-    SDL_WaitForGPUIdle(device);
-    SDL_ReleaseGPUTransferBuffer(device, transfer);
-
-    bakedWidth = width;
-    bakedHeight = height;
-
-    spdlog::debug("Created tile render target ({}x{})", width, height);
     return true;
 }
 
-bool TileRenderer::ensureInstanceBuffer(uint32_t tileCount) {
-    if (tileCount <= instanceBufferCapacity) {
+bool TileRenderer::ensureChunkTextureArray(uint32_t requiredLayers) {
+    if (requiredLayers <= chunkTextureArrayLayers && chunkTextureArray) {
         return true;
     }
 
-    // Release old buffers
-    if (instanceTransfer) {
-        SDL_ReleaseGPUTransferBuffer(device, instanceTransfer);
-        instanceTransfer = nullptr;
+    // Add some slack to avoid frequent reallocations
+    uint32_t newLayerCount = requiredLayers + 16;
+
+    SDL_GPUTextureCreateInfo textureInfo = {};
+    textureInfo.type = SDL_GPU_TEXTURETYPE_2D_ARRAY;
+    textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+    textureInfo.width = CHUNK_SIZE_PIXELS;
+    textureInfo.height = CHUNK_SIZE_PIXELS;
+    textureInfo.layer_count_or_depth = newLayerCount;
+    textureInfo.num_levels = 1;
+    textureInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+
+    SDL_GPUTexture* newTextureArray = SDL_CreateGPUTexture(device, &textureInfo);
+    if (!newTextureArray) {
+        spdlog::error("Failed to create chunk texture array: {}", SDL_GetError());
+        return false;
     }
-    if (instanceBuffer) {
-        SDL_ReleaseGPUBuffer(device, instanceBuffer);
-        instanceBuffer = nullptr;
+
+    // If we had an old array, we'd need to copy data - but for simplicity, we'll just
+    // mark all chunks as dirty to rebake them
+    if (chunkTextureArray) {
+        SDL_ReleaseGPUTexture(device, chunkTextureArray);
+        for (auto& [coord, chunk] : chunks) {
+            chunk.isDirty = true;
+        }
+    }
+
+    chunkTextureArray = newTextureArray;
+    chunkTextureArrayLayers = newLayerCount;
+
+    spdlog::trace("Created chunk texture array with {} layers", newLayerCount);
+    return true;
+}
+
+uint32_t TileRenderer::allocateLayerIndex() {
+    if (!freeLayerIndices.empty()) {
+        uint32_t index = freeLayerIndices.back();
+        freeLayerIndices.pop_back();
+        return index;
+    }
+
+    return nextLayerIndex++;
+}
+
+void TileRenderer::freeLayerIndex(uint32_t index) { freeLayerIndices.push_back(index); }
+
+void TileRenderer::updateChunkGrid() {
+    if (!entt::locator<Grid>::has_value()) {
+        return;
+    }
+
+    auto& grid = entt::locator<Grid>::value();
+    glm::ivec2 gridSize(grid.getWidth(), grid.getHeight());
+
+    if (gridSize == cachedGridSize) {
+        return;
+    }
+
+    glm::ivec2 newChunkGridSize = (gridSize + CHUNK_SIZE_TILES - 1) / CHUNK_SIZE_TILES;
+
+    for (auto it = chunks.begin(); it != chunks.end();) {
+        if (it->first.x >= newChunkGridSize.x || it->first.y >= newChunkGridSize.y) {
+            destroyChunk(it->second);
+            it = chunks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    cachedGridSize = gridSize;
+    chunkGridSize = newChunkGridSize;
+
+    createAllChunks();
+
+    cachedCameraPos = glm::vec2(-1.0f, -1.0f);
+    cachedVisibleChunks.clear();
+}
+
+void TileRenderer::createAllChunks() {
+    uint32_t totalChunks = chunkGridSize.x * chunkGridSize.y;
+    if (totalChunks == 0) {
+        return;
+    }
+
+    if (!ensureChunkTextureArray(totalChunks)) {
+        return;
+    }
+
+    for (int cy = 0; cy < chunkGridSize.y; ++cy) {
+        for (int cx = 0; cx < chunkGridSize.x; ++cx) {
+            glm::ivec2 coord(cx, cy);
+            if (chunks.find(coord) == chunks.end()) {
+                getOrCreateChunk(coord);
+                chunkInstancesNeedUpload = true;
+            }
+        }
+    }
+}
+
+TileRenderer::TileChunk& TileRenderer::getOrCreateChunk(glm::ivec2 chunkPos) {
+    auto it = chunks.find(chunkPos);
+    if (it != chunks.end()) {
+        return it->second;
+    }
+
+    TileChunk chunk;
+    chunk.chunkPos = chunkPos;
+    chunk.tileCount = calculateChunkTileCount(chunkPos);
+    chunk.pixelSize = glm::uvec2(chunk.tileCount * TILE_SIZE);
+    chunk.worldMin = glm::vec2(chunkPos * CHUNK_SIZE_PIXELS);
+    chunk.worldMax = chunk.worldMin + glm::vec2(chunk.pixelSize);
+    chunk.layerIndex = allocateLayerIndex();
+    chunk.isDirty = true;
+    chunk.isVisible = true;
+
+    ensureChunkTextureArray(chunk.layerIndex + 1);
+
+    auto [insertIt, _] = chunks.emplace(chunkPos, std::move(chunk));
+    return insertIt->second;
+}
+
+void TileRenderer::destroyChunk(const TileChunk& chunk) { freeLayerIndex(chunk.layerIndex); }
+
+void TileRenderer::destroyAllChunks() {
+    chunks.clear();
+    freeLayerIndices.clear();
+    nextLayerIndex = 0;
+    cachedGridSize = glm::ivec2(0, 0);
+    chunkGridSize = glm::ivec2(0, 0);
+    cachedVisibleChunks.clear();
+    uploadedChunkCount = 0;
+    chunkInstancesNeedUpload = true;
+}
+
+glm::ivec2 TileRenderer::calculateChunkTileCount(glm::ivec2 chunkPos) const {
+    glm::ivec2 startTile = chunkPos * CHUNK_SIZE_TILES;
+    glm::ivec2 endTile = glm::min(startTile + CHUNK_SIZE_TILES, cachedGridSize);
+    return endTile - startTile;
+}
+
+void TileRenderer::markDirtyChunksFromRegion(const GridRegion& region) {
+    if (region.width <= 0 || region.height <= 0) {
+        return;
+    }
+
+    glm::ivec2 startChunk = glm::ivec2(region.x, region.y) / CHUNK_SIZE_TILES;
+    glm::ivec2 endChunk =
+        (glm::ivec2(region.x + region.width, region.y + region.height) - 1) / CHUNK_SIZE_TILES;
+
+    startChunk = glm::max(startChunk, glm::ivec2(0));
+    endChunk = glm::min(endChunk, chunkGridSize - 1);
+
+    for (int cy = startChunk.y; cy <= endChunk.y; ++cy) {
+        for (int cx = startChunk.x; cx <= endChunk.x; ++cx) {
+            glm::ivec2 coord(cx, cy);
+            auto it = chunks.find(coord);
+
+            if (it != chunks.end()) {
+                it->second.isDirty = true;
+            }
+        }
+    }
+}
+
+void TileRenderer::updateVisibleChunks(const Camera& camera) {
+    glm::vec2 pos = camera.getPosition();
+    glm::vec2 size(static_cast<float>(camera.getScreenWidth()),
+                   static_cast<float>(camera.getScreenHeight()));
+
+    if (pos == cachedCameraPos && size == cachedCameraSize && !cachedVisibleChunks.empty()) {
+        return;
+    }
+
+    cachedCameraPos = pos;
+    cachedCameraSize = size;
+    cachedVisibleChunks.clear();
+
+    if (chunkGridSize.x <= 0 || chunkGridSize.y <= 0) {
+        return;
+    }
+
+    glm::ivec2 startChunk = glm::max(glm::ivec2(0), glm::ivec2(pos) / CHUNK_SIZE_PIXELS);
+    glm::ivec2 endChunk = glm::min(chunkGridSize - 1, glm::ivec2(pos + size) / CHUNK_SIZE_PIXELS);
+
+    for (int cy = startChunk.y; cy <= endChunk.y; ++cy) {
+        for (int cx = startChunk.x; cx <= endChunk.x; ++cx) {
+            auto it = chunks.find(glm::ivec2(cx, cy));
+
+            if (it != chunks.end() && it->second.isVisible) {
+                cachedVisibleChunks.push_back(&it->second);
+            }
+        }
+    }
+}
+
+bool TileRenderer::ensureTileInstanceBuffer(uint32_t tileCount) {
+    if (tileCount <= tileInstanceBufferCapacity) {
+        return true;
+    }
+
+    if (tileInstanceTransfer) {
+        SDL_ReleaseGPUTransferBuffer(device, tileInstanceTransfer);
+        tileInstanceTransfer = nullptr;
+    }
+    if (tileInstanceBuffer) {
+        SDL_ReleaseGPUBuffer(device, tileInstanceBuffer);
+        tileInstanceBuffer = nullptr;
     }
 
     uint32_t newCapacity = tileCount + 256;  // Add some slack
@@ -569,9 +694,9 @@ bool TileRenderer::ensureInstanceBuffer(uint32_t tileCount) {
     bufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
     bufferInfo.size = bufferSize;
 
-    instanceBuffer = SDL_CreateGPUBuffer(device, &bufferInfo);
-    if (!instanceBuffer) {
-        spdlog::error("Failed to create instance buffer: {}", SDL_GetError());
+    tileInstanceBuffer = SDL_CreateGPUBuffer(device, &bufferInfo);
+    if (!tileInstanceBuffer) {
+        spdlog::error("Failed to create tile instance buffer: {}", SDL_GetError());
         return false;
     }
 
@@ -579,64 +704,110 @@ bool TileRenderer::ensureInstanceBuffer(uint32_t tileCount) {
     transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
     transferInfo.size = bufferSize;
 
-    instanceTransfer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
-    if (!instanceTransfer) {
-        spdlog::error("Failed to create instance transfer buffer: {}", SDL_GetError());
+    tileInstanceTransfer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
+    if (!tileInstanceTransfer) {
+        spdlog::error("Failed to create tile instance transfer buffer: {}", SDL_GetError());
         return false;
     }
 
-    instanceBufferCapacity = newCapacity;
+    tileInstanceBufferCapacity = newCapacity;
     return true;
 }
 
-void TileRenderer::rebakeTiles(SDL_GPUCommandBuffer* commandBuffer) {
+bool TileRenderer::ensureChunkInstanceBuffer(uint32_t chunkCount) {
+    if (chunkCount <= chunkInstanceBufferCapacity) {
+        return true;
+    }
+
+    if (chunkInstanceTransfer) {
+        SDL_ReleaseGPUTransferBuffer(device, chunkInstanceTransfer);
+        chunkInstanceTransfer = nullptr;
+    }
+    if (chunkInstanceBuffer) {
+        SDL_ReleaseGPUBuffer(device, chunkInstanceBuffer);
+        chunkInstanceBuffer = nullptr;
+    }
+
+    uint32_t newCapacity = chunkCount + 16;  // Add some slack
+    uint32_t bufferSize = newCapacity * sizeof(ChunkInstance);
+
+    SDL_GPUBufferCreateInfo bufferInfo = {};
+    bufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+    bufferInfo.size = bufferSize;
+
+    chunkInstanceBuffer = SDL_CreateGPUBuffer(device, &bufferInfo);
+    if (!chunkInstanceBuffer) {
+        spdlog::error("Failed to create chunk instance buffer: {}", SDL_GetError());
+        return false;
+    }
+
+    SDL_GPUTransferBufferCreateInfo transferInfo = {};
+    transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    transferInfo.size = bufferSize;
+
+    chunkInstanceTransfer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
+    if (!chunkInstanceTransfer) {
+        spdlog::error("Failed to create chunk instance transfer buffer: {}", SDL_GetError());
+        return false;
+    }
+
+    chunkInstanceBufferCapacity = newCapacity;
+    return true;
+}
+
+void TileRenderer::rebakeChunk(SDL_GPUCommandBuffer* commandBuffer, TileChunk& chunk) {
     if (!entt::locator<Grid>::has_value()) {
-        spdlog::warn("No grid found for TileRenderer; skipping rebake");
         return;
     }
 
-    auto grid = entt::locator<Grid>::value();
+    const auto& grid = entt::locator<Grid>::value();
 
-    int mapWidth = grid.getWidth();
-    int mapHeight = grid.getHeight();
-    uint32_t tileCount = mapWidth * mapHeight;
+    glm::ivec2 startTile = chunk.chunkPos * CHUNK_SIZE_TILES;
+    glm::ivec2 endTile = startTile + chunk.tileCount;
 
-    if (!ensureInstanceBuffer(tileCount)) {
+    uint32_t maxTiles = chunk.tileCount.x * chunk.tileCount.y;
+    if (!ensureTileInstanceBuffer(maxTiles)) {
         return;
     }
 
-    // Fill instance buffer
     TileInstance* instances =
-        static_cast<TileInstance*>(SDL_MapGPUTransferBuffer(device, instanceTransfer, true));
+        static_cast<TileInstance*>(SDL_MapGPUTransferBuffer(device, tileInstanceTransfer, true));
 
     uint32_t instanceIdx = 0;
-    grid.forEachTile([&](int x, int y, const GridTile& tile) {
-        if (tile.id != TILE_EMPTY) {
-            instances[instanceIdx].position = glm::vec2(x * TILE_SIZE, y * TILE_SIZE);
-            instances[instanceIdx].uvBounds = atlas->getTileUV(tile.id);
-            instanceIdx++;
-        }
-    });
+    for (int y = startTile.y; y < endTile.y; ++y) {
+        for (int x = startTile.x; x < endTile.x; ++x) {
+            GridTile tile = grid.getTile(x, y);
 
-    SDL_UnmapGPUTransferBuffer(device, instanceTransfer);
+            if (tile.id != TILE_EMPTY) {
+                int localX = x - startTile.x;
+                int localY = y - startTile.y;
+                instances[instanceIdx].position = glm::vec2(localX * TILE_SIZE, localY * TILE_SIZE);
+                instances[instanceIdx].uvBounds = atlas->getTileUV(tile);
+                instanceIdx++;
+            }
+        }
+    }
+
+    SDL_UnmapGPUTransferBuffer(device, tileInstanceTransfer);
 
     uint32_t visibleTileCount = instanceIdx;
+    chunk.isVisible = (visibleTileCount > 0);
 
     if (visibleTileCount == 0) {
+        chunk.isDirty = false;
         return;
     }
 
-    // Upload instance data
     SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(commandBuffer);
-    SDL_GPUTransferBufferLocation src = {instanceTransfer, 0};
-    SDL_GPUBufferRegion dst = {instanceBuffer, 0,
+    SDL_GPUTransferBufferLocation src = {tileInstanceTransfer, 0};
+    SDL_GPUBufferRegion dst = {tileInstanceBuffer, 0,
                                static_cast<Uint32>(visibleTileCount * sizeof(TileInstance))};
     SDL_UploadToGPUBuffer(copyPass, &src, &dst, false);
     SDL_EndGPUCopyPass(copyPass);
 
-    // Render to texture
     SDL_GPUColorTargetInfo colorTarget = {};
-    colorTarget.texture = bakedTexture;
+    colorTarget.texture = chunkTextureArray;
+    colorTarget.layer_or_depth_plane = chunk.layerIndex;
     colorTarget.load_op = SDL_GPU_LOADOP_CLEAR;
     colorTarget.store_op = SDL_GPU_STOREOP_STORE;
     colorTarget.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -645,22 +816,22 @@ void TileRenderer::rebakeTiles(SDL_GPUCommandBuffer* commandBuffer) {
 
     SDL_BindGPUGraphicsPipeline(renderPass, composePipeline);
 
-    // Set viewport for render target
     SDL_GPUViewport viewport = {
-        0, 0, static_cast<float>(bakedWidth), static_cast<float>(bakedHeight), 0.0f, 1.0f};
+        0,    0,   static_cast<float>(CHUNK_SIZE_PIXELS), static_cast<float>(CHUNK_SIZE_PIXELS),
+        0.0f, 1.0f};
     SDL_SetGPUViewport(renderPass, &viewport);
 
-    SDL_Rect scissor = {0, 0, static_cast<int>(bakedWidth), static_cast<int>(bakedHeight)};
+    SDL_Rect scissor = {0, 0, CHUNK_SIZE_PIXELS, CHUNK_SIZE_PIXELS};
     SDL_SetGPUScissor(renderPass, &scissor);
 
-    glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(bakedWidth),
-                                      static_cast<float>(bakedHeight), 0.0f, -1.0f, 1.0f);
+    glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(CHUNK_SIZE_PIXELS),
+                                      static_cast<float>(CHUNK_SIZE_PIXELS), 0.0f, -1.0f, 1.0f);
     SDL_PushGPUVertexUniformData(commandBuffer, 0, &projection, sizeof(glm::mat4));
 
     SDL_GPUBufferBinding vertexBindings[2] = {};
     vertexBindings[0].buffer = quadVertexBuffer;
     vertexBindings[0].offset = 0;
-    vertexBindings[1].buffer = instanceBuffer;
+    vertexBindings[1].buffer = tileInstanceBuffer;
     vertexBindings[1].offset = 0;
     SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, 2);
 
@@ -672,10 +843,110 @@ void TileRenderer::rebakeTiles(SDL_GPUCommandBuffer* commandBuffer) {
     SDL_DrawGPUPrimitives(renderPass, 6, visibleTileCount, 0, 0);
 
     SDL_EndGPURenderPass(renderPass);
+
+    chunk.isDirty = false;
 }
 
-void TileRenderer::renderBakedTexture(SDL_GPUCommandBuffer* commandBuffer,
-                                      SDL_GPURenderPass* renderPass, const Camera& camera) {
+void TileRenderer::rebakeDirtyChunks(SDL_GPUCommandBuffer* commandBuffer) {
+    for (auto& [coord, chunk] : chunks) {
+        if (chunk.isDirty) {
+            rebakeChunk(commandBuffer, chunk);
+            chunkInstancesNeedUpload = true;
+        }
+    }
+}
+
+void TileRenderer::uploadChunkInstances(SDL_GPUCommandBuffer* commandBuffer) {
+    if (!chunkInstancesNeedUpload) {
+        return;
+    }
+
+    if (chunks.empty() || !chunkTextureArray) {
+        uploadedChunkCount = 0;
+        chunkInstancesNeedUpload = false;
+        return;
+    }
+
+    // Determine visible chunk range based on cached camera position
+    // If no cached position yet, upload all non-empty chunks for first frame
+    glm::ivec2 startChunk(0, 0);
+    glm::ivec2 endChunk = chunkGridSize - 1;
+
+    if (cachedCameraPos.x >= 0 && cachedCameraSize.x > 0) {
+        startChunk = glm::max(glm::ivec2(0), glm::ivec2(cachedCameraPos) / CHUNK_SIZE_PIXELS);
+        endChunk = glm::min(chunkGridSize - 1,
+                            glm::ivec2(cachedCameraPos + cachedCameraSize) / CHUNK_SIZE_PIXELS);
+    }
+
+    uint32_t visibleCount = 0;
+    for (int cy = startChunk.y; cy <= endChunk.y; ++cy) {
+        for (int cx = startChunk.x; cx <= endChunk.x; ++cx) {
+            auto it = chunks.find(glm::ivec2(cx, cy));
+
+            if (it != chunks.end() && it->second.isVisible) {
+                visibleCount++;
+            }
+        }
+    }
+
+    if (visibleCount == 0) {
+        uploadedChunkCount = 0;
+        return;
+    }
+
+    if (!ensureChunkInstanceBuffer(visibleCount)) {
+        uploadedChunkCount = 0;
+        return;
+    }
+
+    ChunkInstance* instances =
+        static_cast<ChunkInstance*>(SDL_MapGPUTransferBuffer(device, chunkInstanceTransfer, true));
+
+    uint32_t idx = 0;
+    for (int cy = startChunk.y; cy <= endChunk.y; ++cy) {
+        for (int cx = startChunk.x; cx <= endChunk.x; ++cx) {
+            auto it = chunks.find(glm::ivec2(cx, cy));
+
+            if (it != chunks.end() && it->second.isVisible) {
+                const TileChunk& chunk = it->second;
+                instances[idx].worldPos = chunk.worldMin;
+                instances[idx].size = glm::vec2(chunk.pixelSize);
+                instances[idx].layerIndex = static_cast<float>(chunk.layerIndex);
+                idx++;
+            }
+        }
+    }
+
+    SDL_UnmapGPUTransferBuffer(device, chunkInstanceTransfer);
+
+    SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(commandBuffer);
+    SDL_GPUTransferBufferLocation src = {chunkInstanceTransfer, 0};
+    SDL_GPUBufferRegion dst = {chunkInstanceBuffer, 0,
+                               static_cast<Uint32>(visibleCount * sizeof(ChunkInstance))};
+    SDL_UploadToGPUBuffer(copyPass, &src, &dst, false);
+    SDL_EndGPUCopyPass(copyPass);
+
+    uploadedChunkCount = visibleCount;
+    chunkInstancesNeedUpload = false;
+}
+
+void TileRenderer::renderVisibleChunks(SDL_GPUCommandBuffer* commandBuffer,
+                                       SDL_GPURenderPass* renderPass, const Camera& camera) {
+    if (!chunkTextureArray || uploadedChunkCount == 0) {
+        return;
+    }
+
+    glm::vec2 newCameraPos = camera.getPosition();
+    glm::vec2 newCameraSize = glm::vec2(static_cast<float>(camera.getScreenWidth()),
+                                        static_cast<float>(camera.getScreenHeight()));
+
+    if (newCameraPos != cachedCameraPos || newCameraSize != cachedCameraSize) {
+        chunkInstancesNeedUpload = true;
+    }
+
+    cachedCameraPos = newCameraPos;
+    cachedCameraSize = newCameraSize;
+
     SDL_BindGPUGraphicsPipeline(renderPass, displayPipeline);
 
     glm::mat4 mvp = camera.getViewProjectionMatrix();
@@ -689,17 +960,19 @@ void TileRenderer::renderBakedTexture(SDL_GPUCommandBuffer* commandBuffer,
     SDL_Rect scissor = {sc.x, sc.y, sc.width, sc.height};
     SDL_SetGPUScissor(renderPass, &scissor);
 
-    SDL_GPUBufferBinding vertexBinding = {};
-    vertexBinding.buffer = displayVertexBuffer;
-    vertexBinding.offset = 0;
-    SDL_BindGPUVertexBuffers(renderPass, 0, &vertexBinding, 1);
+    SDL_GPUBufferBinding vertexBindings[2] = {};
+    vertexBindings[0].buffer = quadVertexBuffer;
+    vertexBindings[0].offset = 0;
+    vertexBindings[1].buffer = chunkInstanceBuffer;
+    vertexBindings[1].offset = 0;
+    SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, 2);
 
     SDL_GPUTextureSamplerBinding texBinding = {};
-    texBinding.texture = bakedTexture;
-    texBinding.sampler = bakedSampler;
+    texBinding.texture = chunkTextureArray;
+    texBinding.sampler = chunkSampler;
     SDL_BindGPUFragmentSamplers(renderPass, 0, &texBinding, 1);
 
-    SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
+    SDL_DrawGPUPrimitives(renderPass, 6, uploadedChunkCount, 0, 0);
 }
 
 }  // namespace SpaceRogueLite

@@ -6,6 +6,7 @@
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_sdlgpu3.h"
 #include "imgui.h"
+#include "inputhandler.h"
 
 using namespace SpaceRogueLite;
 
@@ -25,8 +26,11 @@ bool Window::initialize(void) {
         return false;
     }
 
-    sdlWindow = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
-                                 SDL_WINDOW_HIGH_PIXEL_DENSITY);
+    // sdlWindow = SDL_CreateWindow(title.c_str(), static_cast<int>(width),
+    // static_cast<int>(height),
+    //                              SDL_WINDOW_HIGH_PIXEL_DENSITY);
+    sdlWindow =
+        SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height), 0);
     if (!sdlWindow) {
         spdlog::critical("SDL window could not be created: {}", SDL_GetError());
         return false;
@@ -104,6 +108,8 @@ void Window::close(void) {
 
 TextureLoader* Window::getTextureLoader() { return textureLoader.get(); }
 
+Camera* Window::getCamera() { return camera.get(); }
+
 void Window::update(int64_t timeSinceLastFrame, bool& quit) {
     SDL_Event event;
 
@@ -112,6 +118,8 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
         if (event.type == SDL_EVENT_QUIT) {
             quit = true;
         }
+
+        entt::locator<SpaceRogueLite::InputHandler>::value().handleEvent(event);
     }
 
     updateUI(timeSinceLastFrame, quit);

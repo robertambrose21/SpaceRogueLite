@@ -1,4 +1,4 @@
-#include "generation/wfcstrategy.h"
+#include "generation/wfc/wfcstrategy.h"
 #include "utils/randomutils.h"
 #include "utils/timing.h"
 
@@ -24,13 +24,9 @@ std::vector<GridTile> WFCStrategy::generate(void) {
         for (int y = 0; y < getHeight(); y++) {
             auto const& wfcTile = (*success).data[y * getWidth() + x];
 
-            // setTile(
-            //     x, y,
-            //     {(int) wfcTile.id, tileSet.isTileWalkable(wfcTile.id), false,
-            //     wfcTile.orientation});
-
-            // Atlas reserves slot 0 for TILE_EMPTY, so tile IDs need +1 offset
-            setTile(x, y, {static_cast<TileId>(wfcTile.id + 1), GridTile::WALKABLE, wfcTile.orientation});
+            setTile(x, y,
+                    {wfcTile.tileId, wfcTile.name, tileSet.getTileWalkability(wfcTile.tileId),
+                     wfcTile.orientation});
         }
     }
 
@@ -43,14 +39,10 @@ std::vector<GridTile> WFCStrategy::generate(void) {
 
 std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::run(int numAttempts,
                                                              int& successfulAttempt, int& seed) {
-    auto wfcTiles = tileSet.getTiles();
-    auto neighbours = tileSet.getNeighbours();
-    auto walkableTiles = tileSet.getWalkableTiles();
-
     for (int i = 0; i < numAttempts; i++) {
-        seed = randomRange(0, INT_MAX);
+        seed = Utils::randomRange(0, INT_MAX);
         // seed = 1969591651;
-        setRandomGeneratorSeed(seed);
+        Utils::setRandomGeneratorSeed(seed);
         auto success = runAttempt(seed);
 
         if (success.has_value()) {
@@ -67,9 +59,8 @@ std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::run(int numAttempts,
 }
 
 std::optional<Array2D<WFCTileSet::WFCTile>> WFCStrategy::runAttempt(int seed) {
-    auto wfcTiles = tileSet.getTiles();
+    auto wfcTiles = tileSet.getWFCTileVariants();
     auto neighbours = tileSet.getNeighbours();
-    auto walkableTiles = tileSet.getWalkableTiles();
 
     TilingWFC<WFCTileSet::WFCTile> wfc(wfcTiles, neighbours, getHeight(), getWidth(), {false},
                                        seed);
@@ -84,37 +75,40 @@ void WFCStrategy::generateMapEdge(TilingWFC<WFCTileSet::WFCTile>& wfc) {
     for (int y = 0; y < getHeight(); y++) {
         for (int x = 0; x < getWidth(); x++) {
             if (x == 0 || y == 0 || x == getWidth() - 1 || y == getHeight() - 1) {
-                wfc.set_tile(tileSet.getEdgeTile(), 0, y, x);
+                wfc.set_tile(tileSet.getEdgeTileIndex(), 0, y, x);
             }
         }
     }
 }
 
 void WFCStrategy::generateRoomsAndPaths(TilingWFC<WFCTileSet::WFCTile>& wfc) {
+    auto& grid = entt::locator<SpaceRogueLite::Grid>::value();
+    std::vector<glm::ivec2> roomCenterPoints;
+
     auto numRooms = getRoomConfiguration().numRooms;
     clearRooms();
-
-    std::vector<glm::ivec2> roomCenterPoints;
 
     for (int i = 0; i < numRooms; i++) {
         auto room = generateRoom(wfc, getRooms());
         addRoom(room);
 
-        roomCenterPoints.push_back(
-            glm::ivec2(randomRange(room.min.x, room.max.x), randomRange(room.min.y, room.max.y)));
+        roomCenterPoints.push_back(glm::ivec2(Utils::randomRange(room.min.x, room.max.x),
+                                              Utils::randomRange(room.min.y, room.max.y)));
     }
 
-    std::sort(roomCenterPoints.begin(), roomCenterPoints.end());
+    std::sort(roomCenterPoints.begin(), roomCenterPoints.end(),
+              [](const glm::ivec2& a, const glm::ivec2& b) {
+                  return a.x < b.x || (a.x == b.x && a.y < b.y);
+              });
 
     for (int i = 1; i < roomCenterPoints.size(); i++) {
         auto p1 = roomCenterPoints[i - 1];
         auto p2 = roomCenterPoints[i];
-        // auto intersections = grid->getIntersections(roomCenterPoints[i - 1],
-        // roomCenterPoints[i]);
+        auto intersections = grid.getIntersections(roomCenterPoints[i - 1], roomCenterPoints[i]);
 
-        // for (auto intersection : intersections) {
-        //     wfc.set_tile(tileSet.getRoomTile(), 0, intersection.y, intersection.x);
-        // }
+        for (auto intersection : intersections) {
+            wfc.set_tile(tileSet.getRoomTileIndex(), 0, intersection.y, intersection.x);
+        }
     }
 }
 
@@ -133,7 +127,7 @@ GenerationStrategy::Room WFCStrategy::generateRoom(TilingWFC<WFCTileSet::WFCTile
 
     for (int x = room.min.x; x <= room.max.x; x++) {
         for (int y = room.min.y; y <= room.max.y; y++) {
-            wfc.set_tile(tileSet.getRoomTile(), 0, y, x);
+            wfc.set_tile(tileSet.getRoomTileIndex(), 0, y, x);
         }
     }
 
@@ -141,13 +135,13 @@ GenerationStrategy::Room WFCStrategy::generateRoom(TilingWFC<WFCTileSet::WFCTile
 }
 
 GenerationStrategy::Room WFCStrategy::createRandomRoom(void) {
-    int roomSizeX =
-        randomRange(getRoomConfiguration().minRoomSize.x, getRoomConfiguration().maxRoomSize.x);
-    int roomSizeY =
-        randomRange(getRoomConfiguration().minRoomSize.y, getRoomConfiguration().maxRoomSize.y);
+    int roomSizeX = Utils::randomRange(getRoomConfiguration().minRoomSize.x,
+                                       getRoomConfiguration().maxRoomSize.x);
+    int roomSizeY = Utils::randomRange(getRoomConfiguration().minRoomSize.y,
+                                       getRoomConfiguration().maxRoomSize.y);
 
-    int roomX = randomRange(1, getWidth() - roomSizeX - 1);
-    int roomY = randomRange(1, getHeight() - roomSizeY - 1);
+    int roomX = Utils::randomRange(1, getWidth() - roomSizeX - 1);
+    int roomY = Utils::randomRange(1, getHeight() - roomSizeY - 1);
 
     return {glm::ivec2(roomX, roomY), glm::ivec2(roomX + roomSizeX, roomY + roomSizeY)};
 }
