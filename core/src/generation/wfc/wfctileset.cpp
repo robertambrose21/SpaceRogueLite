@@ -45,9 +45,12 @@ void WFCTileSet::load(void) {
             return;
         }
 
-        tileMapping[type] = {tile["tile_id"].get<uint8_t>(),
-                             getSymmetry(tile["symmetry"].get<std::string>()[0]), type,
-                             tile["weight"].get<double>(), tile["textureId"].get<uint16_t>()};
+        auto tileId = tile["tile_id"].get<uint8_t>();
+        auto symmetry = getSymmetry(tile["symmetry"].get<std::string>()[0]);
+        auto weight = tile["weight"].get<double>();
+        auto textureId = tile["textureId"].get<uint16_t>();
+
+        tileMapping[type] = {tileId, symmetry, type, weight, textureId};
     }
 
     std::map<std::string, unsigned> tileIndexMapping;
@@ -59,10 +62,13 @@ void WFCTileSet::load(void) {
     auto neighboursJson = data["neighbours"].get<std::vector<json>>();
 
     for (auto const& neighbour : neighboursJson) {
-        neighbours.push_back({tileIndexMapping[neighbour["left"].get<std::string>()],
-                              neighbour["left_orientation"].get<unsigned>(),
-                              tileIndexMapping[neighbour["right"].get<std::string>()],
-                              neighbour["right_orientation"].get<unsigned>()});
+        auto leftType = neighbour["left"].get<std::string>();
+        auto leftOrientation = neighbour["left_orientation"].get<unsigned>();
+        auto rightType = neighbour["right"].get<std::string>();
+        auto rightOrientation = neighbour["right_orientation"].get<unsigned>();
+
+        neighbours.push_back({tileIndexMapping[leftType], leftOrientation,
+                              tileIndexMapping[rightType], rightOrientation});
     }
 
     auto walkableTilesJson = data["walkableTiles"].get<std::set<unsigned>>();
