@@ -5,7 +5,7 @@
 using namespace SpaceRogueLite;
 
 WFCTileSet::WFCTileSet(const std::string& rulesFile)
-    : rulesFile(rulesFile), isLoaded(false), isError(false), edgeTile(0), roomTile(0) {}
+    : rulesFile(rulesFile), isLoaded(false), isError(false), edgeTileIndex(0), roomTileIndex(0) {}
 
 void WFCTileSet::load(void) {
     if (isError) {
@@ -22,7 +22,6 @@ void WFCTileSet::load(void) {
         return;
     }
 
-    // Assume an error state until we've finished loading
     isError = true;
 
     if (!std::filesystem::exists(rulesFile)) {
@@ -30,96 +29,107 @@ void WFCTileSet::load(void) {
         return;
     }
 
-    std::ifstream f(rulesFile);
-    json data = json::parse(f);
+    json data = json::parse(std::ifstream(rulesFile));
 
-    auto tilesJson = data["tiles"].get<std::vector<json>>();
-    std::map<std::string, WFCTile> tileMapping;
+    auto tilesByName = parseTileDefinitions(data["tiles"]);
 
-    for (auto const& tile : tilesJson) {
-        auto type = tile["type"].get<std::string>();
-
-        if (tileMapping.contains(type)) {
-            spdlog::error("Duplicate tile '{}' found in rules {}. Cannot generate", type,
-                          rulesFile);
-            return;
-        }
-
-        auto tileId = tile["tile_id"].get<uint8_t>();
-        auto symmetry = getSymmetry(tile["symmetry"].get<std::string>()[0]);
-        auto weight = tile["weight"].get<double>();
-        auto textureId = tile["textureId"].get<uint16_t>();
-
-        tileMapping[type] = {tileId, symmetry, type, weight, textureId};
+    if (!tilesByName) {
+        return;
     }
 
-    std::map<std::string, unsigned> tileIndexMapping;
+    auto walkableSet = data["walkableTiles"].get<std::set<unsigned>>();
+    std::map<std::string, unsigned> nameToIndex;
     unsigned index = 0;
-    for (auto [type, tile] : tileMapping) {
-        tileIndexMapping[type] = index++;
-    }
 
-    auto neighboursJson = data["neighbours"].get<std::vector<json>>();
+    for (const auto& [name, tile] : *tilesByName) {
+        nameToIndex[name] = index;
+        index++;
 
-    for (auto const& neighbour : neighboursJson) {
-        auto leftType = neighbour["left"].get<std::string>();
-        auto leftOrientation = neighbour["left_orientation"].get<unsigned>();
-        auto rightType = neighbour["right"].get<std::string>();
-        auto rightOrientation = neighbour["right_orientation"].get<unsigned>();
-
-        neighbours.push_back({tileIndexMapping[leftType], leftOrientation,
-                              tileIndexMapping[rightType], rightOrientation});
-    }
-
-    auto walkableTilesJson = data["walkableTiles"].get<std::set<unsigned>>();
-
-    for (auto const& [name, tile] : tileMapping) {
-        walkableTiles[tile.tileId] = walkableTilesJson.contains(tile.tileId);
-
+        walkableTiles[tile.tileId] = walkableSet.contains(tile.tileId);
         tileVariants.insert(
             {tile.tileId, tile.name, tile.textureId, toTextureSymmetry(tile.symmetry)});
 
-        switch (tile.symmetry) {
-            // No symmetry
-            case Symmetry::X:
-                tiles.push_back({{Array2D<WFCTile>(1, 1, tile)}, tile.symmetry, tile.weight});
-                break;
-
-            // Rotational symmetry
-            case Symmetry::T:
-            case Symmetry::L: {
-                std::vector<Array2D<WFCTile>> data;
-
-                // 0 -> 3 becomes 0 -> 270 rotational degrees
-                for (int i = 0; i < 4; i++) {
-                    auto variant = tile;
-                    variant.orientation = i;
-                    data.push_back(Array2D<WFCTile>(1, 1, variant));
-                }
-
-                tiles.push_back({data, tile.symmetry, tile.weight});
-                break;
-            }
-
-            // TODO:
-            case Symmetry::I:
-            case Symmetry::backslash:
-            case Symmetry::P:
-                spdlog::warn("Symmetry I, \\ and P are currently unsupported");
-                break;
-
-            // Exit if we somehow get a weird symmetry
-            default:
-                spdlog::error("Unknown symmetry '{}'", (int) tile.symmetry);
-                return;
+        auto wfcTile = buildWFCTile(tile);
+        if (!wfcTile) {
+            return;
         }
+
+        tiles.push_back(*wfcTile);
     }
 
-    edgeTile = tileIndexMapping[data["edgeTile"].get<std::string>()];
-    roomTile = tileIndexMapping[data["rooms"]["roomTile"].get<std::string>()];
+    parseNeighbours(data["neighbours"], nameToIndex);
+
+    edgeTileIndex = nameToIndex.at(data["edgeTile"].get<std::string>());
+    roomTileIndex = nameToIndex.at(data["rooms"]["roomTile"].get<std::string>());
 
     isError = false;
     isLoaded = true;
+}
+
+std::optional<std::map<std::string, WFCTileSet::WFCTile>> WFCTileSet::parseTileDefinitions(
+    const json& tilesJson) {
+    std::map<std::string, WFCTile> tilesByName;
+
+    for (const auto& tileJson : tilesJson) {
+        auto name = tileJson["type"].get<std::string>();
+
+        if (tilesByName.contains(name)) {
+            spdlog::error("Duplicate tile '{}' found in rules {}. Cannot generate", name,
+                          rulesFile);
+            return std::nullopt;
+        }
+
+        tilesByName[name] = {
+            .tileId = tileJson["tile_id"].get<uint8_t>(),
+            .symmetry = getSymmetry(tileJson["symmetry"].get<std::string>()),
+            .name = name,
+            .weight = tileJson["weight"].get<double>(),
+            .textureId = tileJson["textureId"].get<uint16_t>(),
+            .orientation = 0,
+        };
+    }
+
+    return tilesByName;
+}
+
+std::optional<Tile<WFCTileSet::WFCTile>> WFCTileSet::buildWFCTile(const WFCTile& tile) {
+    switch (tile.symmetry) {
+        case Symmetry::X:
+            return Tile<WFCTile>{{Array2D<WFCTile>(1, 1, tile)}, tile.symmetry, tile.weight};
+
+        case Symmetry::T:
+        case Symmetry::L: {
+            std::vector<Array2D<WFCTile>> orientations;
+            for (uint8_t i = 0; i < 4; i++) {
+                auto variant = tile;
+                variant.orientation = i;
+                orientations.push_back(Array2D<WFCTile>(1, 1, variant));
+            }
+            return Tile<WFCTile>{orientations, tile.symmetry, tile.weight};
+        }
+
+        case Symmetry::I:
+        case Symmetry::backslash:
+        case Symmetry::P:
+            spdlog::error("Symmetry I, \\ and P are not supported");
+            return std::nullopt;
+
+        default:
+            spdlog::error("Unknown symmetry '{}'", static_cast<int>(tile.symmetry));
+            return std::nullopt;
+    }
+}
+
+void WFCTileSet::parseNeighbours(const json& neighboursJson,
+                                 const std::map<std::string, unsigned>& nameToIndex) {
+    for (const auto& neighbour : neighboursJson) {
+        neighbours.push_back({
+            nameToIndex.at(neighbour["left"].get<std::string>()),
+            neighbour["left_orientation"].get<unsigned>(),
+            nameToIndex.at(neighbour["right"].get<std::string>()),
+            neighbour["right_orientation"].get<unsigned>(),
+        });
+    }
 }
 
 void WFCTileSet::reset(void) {
@@ -131,8 +141,13 @@ void WFCTileSet::reset(void) {
     isError = false;
 }
 
-Symmetry WFCTileSet::getSymmetry(char symmetry) {
-    switch (symmetry) {
+Symmetry WFCTileSet::getSymmetry(const std::string& symmetry) {
+    if (symmetry.length() != 1) {
+        spdlog::warn("Symmetry must be a single character, got '{}', defaulting to 'X'", symmetry);
+        return Symmetry::X;
+    }
+
+    switch (symmetry[0]) {
         case 'X':
             return Symmetry::X;
         case 'T':
@@ -173,9 +188,9 @@ GridTile::Walkability WFCTileSet::getTileWalkability(TileId id) {
     return GridTile::BLOCKED;
 }
 
-TileId WFCTileSet::getEdgeTile(void) const { return edgeTile; }
+unsigned WFCTileSet::getEdgeTileIndex(void) const { return edgeTileIndex; }
 
-TileId WFCTileSet::getRoomTile(void) const { return roomTile; }
+unsigned WFCTileSet::getRoomTileIndex(void) const { return roomTileIndex; }
 
 TileVariant::TextureSymmetry WFCTileSet::toTextureSymmetry(Symmetry symmetry) {
     if (symmetry == Symmetry::X) {

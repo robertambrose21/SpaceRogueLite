@@ -12,6 +12,7 @@
 #include <iostream>
 #include <map>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -41,15 +42,20 @@ public:
     const std::map<TileId, bool>& getWalkableTiles(void) const override;
     GridTile::Walkability getTileWalkability(TileId id) override;
 
-    TileId getEdgeTile(void) const override;
-    TileId getRoomTile(void) const override;
+    unsigned getEdgeTileIndex(void) const override;
+    unsigned getRoomTileIndex(void) const override;
 
     void load(void) override;
     void reset(void) override;
 
 private:
-    Symmetry getSymmetry(char symmetry);
+    Symmetry getSymmetry(const std::string& symmetry);
     static TileVariant::TextureSymmetry toTextureSymmetry(Symmetry symmetry);
+
+    std::optional<std::map<std::string, WFCTile>> parseTileDefinitions(const json& tilesJson);
+    std::optional<Tile<WFCTile>> buildWFCTile(const WFCTile& tile);
+    void parseNeighbours(const json& neighboursJson,
+                         const std::map<std::string, unsigned>& nameToIndex);
 
     bool isError;
     bool isLoaded;
@@ -60,8 +66,8 @@ private:
     std::map<TileId, bool> walkableTiles;
     std::set<TileVariant> tileVariants;
 
-    TileId edgeTile;
-    TileId roomTile;
+    unsigned edgeTileIndex;
+    unsigned roomTileIndex;
 };
 
 }  // namespace SpaceRogueLite
