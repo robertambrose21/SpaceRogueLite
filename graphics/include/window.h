@@ -9,6 +9,7 @@
 #include <string>
 #include <type_traits>
 #include "camera.h"
+#include "console.h"
 #include "renderlayers/renderlayer.h"
 #include "textureloader.h"
 
@@ -53,6 +54,7 @@ public:
 
     TextureLoader* getTextureLoader();
     Camera* getCamera();
+    Console* getConsole();
 
     void update(int64_t timeSinceLastFrame, bool& quit);
     void updateUI(int64_t timeSinceLastFrame, bool& quit);
@@ -70,6 +72,7 @@ private:
     std::set<std::unique_ptr<RenderLayer>, RenderLayerComparator> renderLayers;
 
     std::unique_ptr<TextureLoader> textureLoader;
+    std::unique_ptr<Console> console;
 };
 
 }  // namespace SpaceRogueLite

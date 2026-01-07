@@ -10,6 +10,7 @@
 #include <generation/wfc/wfctileset.h>
 #include <grid.h>
 #include <inputhandler.h>
+#include <console.h>
 #include <rendercomponents.h>
 #include <renderlayers/entities/entityrendersystem.h>
 #include <renderlayers/tiles/tileatlas.h>
@@ -21,7 +22,7 @@
 #include "net/client.h"
 #include "net/clientmessagehandler.h"
 #include "net/clientmessagetransmitter.h"
-#include "net/inputcommandhandler.h"
+#include "net/commandparser.h"
 
 int main() {
 #if !defined(NDEBUG)
@@ -46,14 +47,22 @@ int main() {
         SpaceRogueLite::Game game;
         SpaceRogueLite::Client client(1, yojimbo::Address("127.0.0.1", 8081), messageHandler);
         SpaceRogueLite::ClientMessageTransmitter messageTransmitter(client);
-        // TODO: Remove this eventually
-        SpaceRogueLite::InputCommandHandler inputHandler(messageTransmitter);
 
         entt::locator<SpaceRogueLite::Grid>::emplace(128, 128);
         entt::locator<SpaceRogueLite::InputHandler>::emplace();
 
         SpaceRogueLite::Window window("SpaceRogueLite Client", 1920, 1080);
         window.initialize();
+
+        auto consoleSink = std::make_shared<SpaceRogueLite::ConsoleSinkMt>(window.getConsole());
+        spdlog::default_logger()->sinks().push_back(consoleSink);
+
+        window.getConsole()->setCommandCallback([&messageTransmitter](const std::string& command) {
+            auto parsed = SpaceRogueLite::CommandParser::parse(command);
+            if (parsed.has_value()) {
+                messageTransmitter.sendMessageFromCommand(parsed->messageType, parsed->arguments);
+            }
+        });
 
         SpaceRogueLite::CameraInput cameraInput(window.getCamera(), 10);
 
@@ -92,11 +101,6 @@ int main() {
         game.attachWorker({2, "RenderLoop", [&window](int64_t timeSinceLastFrame, bool& quit) {
                                window.update(timeSinceLastFrame, quit);
                            }});
-
-        game.attachWorker(
-            {3, "InputHandler", [&inputHandler](int64_t timeSinceLastFrame, bool& quit) {
-                 inputHandler.processCommands(timeSinceLastFrame);
-             }});
 
         game.attachWorker(
             {4, "CameraMovement", [&cameraInput](int64_t timeSinceLastFrame, bool& quit) {

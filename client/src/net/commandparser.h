@@ -21,13 +21,13 @@ struct ParsedCommand {
 /**
  * Parser for CLI commands
  * Supports format: /send MessageTypeName [args...]
- * Arguments can be quoted: /send SpawnActor 'Enemy5'
+ * Arguments can be quoted: /send spawn_actor 'Enemy5'
  */
 class CommandParser {
 public:
     /**
      * Parse a command string
-     * @param commandString The full command string (e.g., "/send SpawnActor 'Enemy5'")
+     * @param commandString The full command string (e.g., "/send spawn_actor 'Enemy5'")
      * @return Parsed command if valid, std::nullopt otherwise
      */
     static std::optional<ParsedCommand> parse(const std::string& commandString) {

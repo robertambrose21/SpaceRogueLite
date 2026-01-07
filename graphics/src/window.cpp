@@ -62,6 +62,8 @@ bool Window::initialize(void) {
 
     camera = std::make_unique<Camera>(width, height);
     textureLoader = std::make_unique<TextureLoader>(gpuDevice);
+    console = std::make_unique<Console>();
+    entt::locator<SpaceRogueLite::InputHandler>::value().attachWorker(console->getWorker());
 
     SDL_WaitForGPUIdle(gpuDevice);
 
@@ -90,6 +92,8 @@ void Window::close(void) {
     // Wait for GPU to finish before cleanup
     SDL_WaitForGPUIdle(gpuDevice);
 
+    entt::locator<SpaceRogueLite::InputHandler>::value().detachWorker(Console::CONSOLE_WORKER_ID);
+    console.reset();
     camera.reset();
     renderLayers.clear();
     textureLoader.reset();
@@ -180,7 +184,13 @@ void Window::updateUI(int64_t timeSinceLastFrame, bool& quit) {
     ImGui_ImplSDLGPU3_NewFrame();
     ImGui::NewFrame();
 
+    if (console) {
+        console->render();
+    }
+
     ImGui::ShowDemoWindow();
 
     ImGui::Render();
 }
+
+Console* Window::getConsole() { return console.get(); }

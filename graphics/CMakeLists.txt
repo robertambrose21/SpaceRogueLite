@@ -45,6 +45,7 @@ add_library(graphics
     src/window.cpp
     src/camera.cpp
     src/inputhandler.cpp
+    src/console.cpp
     include/utils.h
     src/renderlayers/tiles/tileatlas.cpp
     src/renderlayers/tiles/tilerenderer.cpp
