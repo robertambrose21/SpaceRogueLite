@@ -22,6 +22,7 @@ set_target_properties(core PROPERTIES PUBLIC_HEADER
     "include/game.h",
     "include/actorspawner.h",
     "include/components.h",
+    "include/tileid.h",
     "include/tilevariant.h",
     "include/utils/timing.h",
     "include/utils/randomutils.h",

@@ -1,16 +1,14 @@
 #pragma once
 
-#include <cstdint>
 #include <fastwfc/wfc.hpp>
 #include <functional>
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
 
-namespace SpaceRogueLite {
+#include "tileid.h"
 
-using TileId = uint16_t;  // Supports 65535 tile types
-constexpr TileId TILE_EMPTY = 0;
+namespace SpaceRogueLite {
 
 struct GridRegion {
     int x = 0;
