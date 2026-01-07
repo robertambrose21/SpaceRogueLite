@@ -73,6 +73,9 @@ private:
 
     std::unique_ptr<TextureLoader> textureLoader;
     std::unique_ptr<Console> console;
+
+    static bool isKeyboardEvent(const SDL_Event& event);
+    static bool isMouseEvent(const SDL_Event& event);
 };
 
 }  // namespace SpaceRogueLite

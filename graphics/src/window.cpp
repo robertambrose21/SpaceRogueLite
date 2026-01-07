@@ -123,6 +123,14 @@ void Window::update(int64_t timeSinceLastFrame, bool& quit) {
             quit = true;
         }
 
+        ImGuiIO& io = ImGui::GetIO();
+        if (isKeyboardEvent(event) && io.WantCaptureKeyboard) {
+            continue;
+        }
+        if (isMouseEvent(event) && io.WantCaptureMouse) {
+            continue;
+        }
+
         entt::locator<SpaceRogueLite::InputHandler>::value().handleEvent(event);
     }
 
@@ -194,3 +202,16 @@ void Window::updateUI(int64_t timeSinceLastFrame, bool& quit) {
 }
 
 Console* Window::getConsole() { return console.get(); }
+
+bool Window::isKeyboardEvent(const SDL_Event& event) {
+    return event.type == SDL_EVENT_KEY_DOWN ||
+           event.type == SDL_EVENT_KEY_UP ||
+           event.type == SDL_EVENT_TEXT_INPUT;
+}
+
+bool Window::isMouseEvent(const SDL_Event& event) {
+    return event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+           event.type == SDL_EVENT_MOUSE_BUTTON_UP ||
+           event.type == SDL_EVENT_MOUSE_MOTION ||
+           event.type == SDL_EVENT_MOUSE_WHEEL;
+}
