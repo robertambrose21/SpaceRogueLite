@@ -21,7 +21,9 @@ public:
     ~Game();
 
     void run(void);
+
     virtual void onLoad(void) = 0;
+    virtual void onUnload(void) = 0;
 
     void attachWorker(const Worker& worker);
     void detachWorker(uint32_t id);

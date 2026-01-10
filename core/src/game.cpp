@@ -12,6 +12,9 @@ void Game::run(void) {
     }
 
     loop();
+
+    onUnload();
+    isLoaded = false;
 }
 
 void Game::loop(void) {
