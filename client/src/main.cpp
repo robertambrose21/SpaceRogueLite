@@ -5,16 +5,16 @@
 
 #include <actorspawner.h>
 #include <components.h>
-#include <game.h>
+#include <console.h>
 #include <generation/wfc/wfctileset.h>
 #include <grid.h>
 #include <inputhandler.h>
-#include <console.h>
 #include <rendercomponents.h>
 #include <renderlayers/entities/entityrendersystem.h>
 #include <renderlayers/tiles/tileatlas.h>
 #include <renderlayers/tiles/tilerenderer.h>
 #include <window.h>
+#include "clientgame.h"
 #include "input/camerainput.h"
 #include "message.h"
 #include "messagefactory.h"
@@ -43,7 +43,7 @@ int main() {
         SpaceRogueLite::ClientMessageHandler messageHandler(dispatcher);
         SpaceRogueLite::ActorSpawner spawner(registry, dispatcher);
 
-        SpaceRogueLite::Game game;
+        ClientGame game;
         SpaceRogueLite::Client client(1, yojimbo::Address("127.0.0.1", 8081), messageHandler);
         SpaceRogueLite::ClientMessageTransmitter messageTransmitter(client);
 

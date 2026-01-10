@@ -14,7 +14,8 @@ add_executable(client
         src/net/clientmessagehandler.cpp
         src/net/clientmessagetransmitter.cpp
         src/net/commandparser.h
-        src/input/camerainput.cpp)
+        src/input/camerainput.cpp
+        src/clientgame.cpp)
 set_target_properties(client PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 20)
 target_link_libraries(client PRIVATE core::core net::net yojimbo::yojimbo graphics::graphics)
 

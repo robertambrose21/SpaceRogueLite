@@ -3,13 +3,13 @@
 #include <iostream>
 
 #include "actorspawner.h"
-#include "game.h"
 #include "net/server.h"
 #include "net/servermessagehandler.h"
+#include "servergame.h"
 
-#include <grid.h>
 #include <generation/wfc/wfcstrategy.h>
 #include <generation/wfc/wfctileset.h>
+#include <grid.h>
 
 struct Position {
     float x;
@@ -45,12 +45,13 @@ int main() {
 
     spdlog::info("Generated map: {}x{}", grid.getWidth(), grid.getHeight());
 
-    SpaceRogueLite::Game game;
+    ServerGame game;
     SpaceRogueLite::ServerMessageHandler messageHandler(dispatcher);
     SpaceRogueLite::Server server(yojimbo::Address("127.0.0.1", 8081), 64, messageHandler);
 
-    game.attachWorker({1, "ServerUpdateLoop",
-                       [&server](int64_t timeSinceLastFrame, bool& quit) { server.update(timeSinceLastFrame); }});
+    game.attachWorker({1, "ServerUpdateLoop", [&server](int64_t timeSinceLastFrame, bool& quit) {
+                           server.update(timeSinceLastFrame);
+                       }});
 
     server.start();
 
