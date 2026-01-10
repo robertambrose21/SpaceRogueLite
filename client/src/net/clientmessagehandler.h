@@ -112,19 +112,30 @@ constexpr auto makeHandler() {
 }
 
 /**
+ * Compile-time check for whether client should handle a message direction
+ */
+template <MessageDirection Dir>
+constexpr bool clientShouldHandle() {
+    return Dir == MessageDirection::BIDIRECTIONAL || Dir == MessageDirection::SERVER_TO_CLIENT;
+}
+
+/**
  * Initializes the handler registry with all message handlers
  *
  * This constexpr function is evaluated at compile time to create the registry.
  * Uses MESSAGE_LIST from messagefactory.h to automatically register all message types.
+ * Only registers handlers for messages the client should handle based on direction.
  *
  * @return Initialized HandlerRegistry
  */
 constexpr auto initializeHandlerRegistry() {
     HandlerRegistry<ClientMessageHandler> registry;
 
-    // Generate handler registrations from MESSAGE_LIST
-#define MESSAGE_HANDLER_REGISTER(name, messageClass) \
-    registry.registerHandler(MessageType::name, makeHandler<messageClass>());
+    // Generate handler registrations from MESSAGE_LIST, filtered by direction
+#define MESSAGE_HANDLER_REGISTER(name, messageClass, direction)                    \
+    if constexpr (clientShouldHandle<MessageDirection::direction>()) {             \
+        registry.registerHandler(MessageType::name, makeHandler<messageClass>()); \
+    }
     MESSAGE_LIST(MESSAGE_HANDLER_REGISTER)
 #undef MESSAGE_HANDLER_REGISTER
 

@@ -122,9 +122,9 @@ private:
                        [](unsigned char c) { return std::toupper(c); });
 
         // clang-format off
-#define MESSAGE_TYPE_MATCH(enumName, messageClass)     \
-        if (upperName == #enumName) {                  \
-            return MessageType::enumName;              \
+#define MESSAGE_TYPE_MATCH(enumName, messageClass, direction) \
+        if (upperName == #enumName) {                         \
+            return MessageType::enumName;                     \
         }
         MESSAGE_LIST(MESSAGE_TYPE_MATCH)
 #undef MESSAGE_TYPE_MATCH
@@ -139,9 +139,9 @@ private:
     static void printAvailableMessages() {
         spdlog::info("Available message types:");
         // clang-format off
-#define PRINT_MESSAGE_HELP(enumName, messageClass)     \
-        {                                              \
-            spdlog::info("  - {}", #enumName);         \
+#define PRINT_MESSAGE_HELP(enumName, messageClass, direction) \
+        {                                                     \
+            spdlog::info("  - {}", #enumName);                \
         }
         MESSAGE_LIST(PRINT_MESSAGE_HELP)
 #undef PRINT_MESSAGE_HELP
