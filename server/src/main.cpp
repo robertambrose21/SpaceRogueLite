@@ -7,6 +7,10 @@
 #include "net/server.h"
 #include "net/servermessagehandler.h"
 
+#include <grid.h>
+#include <generation/wfc/wfcstrategy.h>
+#include <generation/wfc/wfctileset.h>
+
 struct Position {
     float x;
     float y;
@@ -27,6 +31,19 @@ int main() {
 
     entt::registry registry;
     entt::dispatcher dispatcher;
+
+    entt::locator<SpaceRogueLite::Grid>::emplace(128, 128);
+
+    SpaceRogueLite::WFCTileSet tileSet("../../../assets/tilesets/grass_and_rocks/rules.json");
+    tileSet.load();
+
+    SpaceRogueLite::WFCStrategy wfcStrategy({2, glm::ivec2(2, 2), glm::ivec2(6, 6), 0}, tileSet);
+    auto generatedMap = wfcStrategy.generate();
+
+    auto& grid = entt::locator<SpaceRogueLite::Grid>::value();
+    grid.setTiles(generatedMap, wfcStrategy.getWidth(), wfcStrategy.getHeight());
+
+    spdlog::info("Generated map: {}x{}", grid.getWidth(), grid.getHeight());
 
     SpaceRogueLite::Game game;
     SpaceRogueLite::ServerMessageHandler messageHandler(dispatcher);

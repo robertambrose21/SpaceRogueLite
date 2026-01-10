@@ -1,5 +1,8 @@
 #include "server.h"
 
+#include <algorithm>
+#include <cstring>
+
 using namespace SpaceRogueLite;
 
 // ---------------------------------------------------------------
@@ -101,6 +104,8 @@ void Server::onClientConnected(int clientIndex) {
         clientIds[clientId] = CONNECTED;
         spdlog::info("Client {}:[{}] connected", clientIndex, clientId);
     }
+
+    sendMapToClient(clientIndex);
 }
 
 void Server::onClientDisconnected(int clientIndex) {
@@ -108,6 +113,43 @@ void Server::onClientDisconnected(int clientIndex) {
     clientIds[clientId] = DISCONNECTED;
 
     spdlog::info("Client {}:[{}] disconnected", clientIndex, clientId);
+}
+
+void Server::sendMapToClient(int clientIndex) {
+    auto& grid = entt::locator<Grid>::value();
+
+    constexpr int CHUNK_SIZE = 16;
+
+    for (int chunkY = 0; chunkY < grid.getHeight(); chunkY += CHUNK_SIZE) {
+        for (int chunkX = 0; chunkX < grid.getWidth(); chunkX += CHUNK_SIZE) {
+            auto* msg = static_cast<LoadMapChunkMessage*>(
+                createMessage(clientIndex, MessageType::LOAD_MAP_CHUNK));
+
+            msg->chunk.posX = chunkX;
+            msg->chunk.posY = chunkY;
+            msg->chunk.width = std::min(CHUNK_SIZE, grid.getWidth() - chunkX);
+            msg->chunk.height = std::min(CHUNK_SIZE, grid.getHeight() - chunkY);
+
+            for (int y = 0; y < msg->chunk.height; y++) {
+                for (int x = 0; x < msg->chunk.width; x++) {
+                    auto gridTile = grid.getTile(chunkX + x, chunkY + y);
+                    auto& chunkTile = msg->chunk.tiles[y * msg->chunk.width + x];
+
+                    chunkTile.id = gridTile.id;
+                    chunkTile.orientation = gridTile.orientation;
+                    chunkTile.walkability = static_cast<uint8_t>(gridTile.walkable);
+                    std::strncpy(chunkTile.type, gridTile.type.c_str(), 63);
+                    chunkTile.type[63] = '\0';
+                }
+            }
+
+            sendMessage(clientIndex, msg);
+        }
+    }
+
+    spdlog::info("Sent map ({} chunks) to client {}",
+                 (grid.getWidth() / CHUNK_SIZE) * (grid.getHeight() / CHUNK_SIZE),
+                 clientIndex);
 }
 
 // ---------------------------------------------------------------

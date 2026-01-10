@@ -6,7 +6,6 @@
 #include <actorspawner.h>
 #include <components.h>
 #include <game.h>
-#include <generation/wfc/wfcstrategy.h>
 #include <generation/wfc/wfctileset.h>
 #include <grid.h>
 #include <inputhandler.h>
@@ -77,13 +76,6 @@ int main() {
         tileSet.load();
 
         tileRenderer->loadTileVariantsIntoAtlas(tileSet.getTileVariants());
-
-        SpaceRogueLite::WFCStrategy wfcStrategy({2, glm::ivec2(2, 2), glm::ivec2(6, 6), 0},
-                                                tileSet);
-        auto generatedMap = wfcStrategy.generate();
-
-        auto& grid = entt::locator<SpaceRogueLite::Grid>::value();
-        grid.setTiles(generatedMap, wfcStrategy.getWidth(), wfcStrategy.getHeight());
 
         window.createRenderLayer<SpaceRogueLite::EntityRenderSystem>(registry);
 

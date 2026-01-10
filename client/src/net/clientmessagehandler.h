@@ -8,6 +8,8 @@
 #include "messagefactory.h"
 #include "messagehandler.h"
 
+#include <grid.h>
+
 namespace SpaceRogueLite {
 
 /**
@@ -68,6 +70,27 @@ inline void ClientMessageHandler::handleMessage<PingMessage>(PingMessage* messag
 template <>
 inline void ClientMessageHandler::handleMessage<SpawnActorMessage>(SpawnActorMessage* message) {
     dispatcher.trigger<ActorSpawnEvent>({std::string(message->actorName)});
+}
+
+template <>
+inline void ClientMessageHandler::handleMessage<LoadMapChunkMessage>(LoadMapChunkMessage* message) {
+    auto& grid = entt::locator<Grid>::value();
+
+    for (uint16_t y = 0; y < message->chunk.height; y++) {
+        for (uint16_t x = 0; x < message->chunk.width; x++) {
+            auto& chunkTile = message->chunk.tiles[y * message->chunk.width + x];
+
+            GridTile tile;
+            tile.id = chunkTile.id;
+            tile.orientation = chunkTile.orientation;
+            tile.type = std::string(chunkTile.type);
+            tile.walkable = static_cast<GridTile::Walkability>(chunkTile.walkability);
+
+            grid.setTile(message->chunk.posX + x, message->chunk.posY + y, tile);
+        }
+    }
+
+    spdlog::debug("Loaded map chunk at ({}, {})", message->chunk.posX, message->chunk.posY);
 }
 
 /**

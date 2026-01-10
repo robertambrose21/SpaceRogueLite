@@ -71,6 +71,10 @@ inline void ServerMessageHandler::handleMessage<SpawnActorMessage>(int clientInd
     dispatcher.trigger<ActorSpawnEvent>({std::string(message->actorName)});
 }
 
+// Server sends this message to clients, but doesn't receive it
+template <>
+inline void ServerMessageHandler::handleMessage<LoadMapChunkMessage>(int clientIndex, LoadMapChunkMessage* message) {}
+
 /**
  * Creates a type-safe handler function for a specific message type
  *

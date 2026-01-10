@@ -16,7 +16,8 @@ namespace SpaceRogueLite {
 // Format: X(ENUM_NAME, MessageClass)
 #define MESSAGE_LIST(X)  \
     X(PING, PingMessage) \
-    X(SPAWN_ACTOR, SpawnActorMessage)
+    X(SPAWN_ACTOR, SpawnActorMessage) \
+    X(LOAD_MAP_CHUNK, LoadMapChunkMessage)
 
 enum class MessageType {
 #define MESSAGE_ENUM(name, messageClass) name,
@@ -153,19 +154,19 @@ public:
 
     template <typename Stream>
     bool Serialize(Stream& stream) {
-        serialize_bits(stream, chunk.width, sizeof(uint16_t));
-        serialize_bits(stream, chunk.height, sizeof(uint16_t));
-        serialize_bits(stream, chunk.posX, sizeof(uint16_t));
-        serialize_bits(stream, chunk.posY, sizeof(uint16_t));
+        serialize_bits(stream, chunk.width, 16);
+        serialize_bits(stream, chunk.height, 16);
+        serialize_bits(stream, chunk.posX, 16);
+        serialize_bits(stream, chunk.posY, 16);
 
         for (uint16_t x = 0; x < chunk.width; x++) {
             for (uint16_t y = 0; y < chunk.height; y++) {
                 ChunkTile& tile = chunk.tiles[y * chunk.width + x];
 
-                serialize_bits(stream, tile.id, sizeof(TileId));
-                serialize_bits(stream, tile.orientation, sizeof(uint8_t));
+                serialize_bits(stream, tile.id, 16);
+                serialize_bits(stream, tile.orientation, 8);
                 serialize_string(stream, tile.type, 64);
-                serialize_bits(stream, tile.walkability, sizeof(uint8_t));
+                serialize_bits(stream, tile.walkability, 8);
             }
         }
 

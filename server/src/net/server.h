@@ -10,6 +10,9 @@
 #include "messagefactory.h"
 #include "messagehandler.h"
 
+#include <entt/entt.hpp>
+#include <grid.h>
+
 namespace SpaceRogueLite {
 
 static const uint8_t SERVER_DEFAULT_PRIVATE_KEY[yojimbo::KeyBytes] = {0};
@@ -49,6 +52,8 @@ public:
 
     void onClientConnected(int clientIndex);
     void onClientDisconnected(int clientIndex);
+
+    void sendMapToClient(int clientIndex);
 
 private:
     enum ConnectionState { CONNECTED = 0, RECONNECTED, DISCONNECTED };
