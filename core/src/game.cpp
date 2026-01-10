@@ -2,10 +2,17 @@
 
 using namespace SpaceRogueLite;
 
-Game::Game() {}
-Game::~Game() {}
+Game::Game() : isLoaded(false) {}
+Game::~Game() { isLoaded = false; }
 
-void Game::run(void) { loop(); }
+void Game::run(void) {
+    if (!isLoaded) {
+        onLoad();
+        isLoaded = true;
+    }
+
+    loop();
+}
 
 void Game::loop(void) {
     int64_t currentTime = Utils::getMilliseconds();

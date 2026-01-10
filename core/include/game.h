@@ -28,6 +28,7 @@ public:
     const std::map<uint32_t, Worker>& getWorkers(void) const;
 
 private:
+    bool isLoaded;
     std::map<uint32_t, Worker> workers;
 
     void loop(void);
