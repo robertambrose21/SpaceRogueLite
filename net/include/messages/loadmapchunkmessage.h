@@ -42,11 +42,6 @@ public:
 
     constexpr const char* getName() const override { return "LoadMapChunk"; }
 
-    bool parseFromCommand(const std::vector<std::string>& args) override {
-        spdlog::warn("LoadMapChunkMessage cannot be parsed from command");
-        return false;
-    }
-
     std::string toString(void) const override {
         std::string data = "";
 
@@ -60,8 +55,6 @@ public:
         return std::format("{}: ({}, {}) - {}/{}", getName(), chunk.posX, chunk.posY,
                            sequenceNumber, numSequences);
     }
-
-    std::string getCommandHelpText(void) const override { return "Loads a map chunk"; }
 
     template <typename Stream>
     bool Serialize(Stream& stream) {
