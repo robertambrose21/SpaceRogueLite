@@ -19,7 +19,7 @@
 #include "message.h"
 #include "net/clientmessagehandler.h"
 #include "net/clientmessagetransmitter.h"
-#include "net/commandparser.h"
+#include "commands/commandparser.h"
 
 void ClientGame::onLoad(void) {
     if (!InitializeYojimbo()) {
