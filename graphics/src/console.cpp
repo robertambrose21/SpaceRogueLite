@@ -22,6 +22,8 @@ void Console::log(LogLevel level, const std::string& message) {
     }
 }
 
+void Console::logTrace(const std::string& message) { log(LogLevel::Trace, message); }
+
 void Console::logDebug(const std::string& message) { log(LogLevel::Debug, message); }
 
 void Console::logInfo(const std::string& message) { log(LogLevel::Info, message); }
@@ -29,6 +31,8 @@ void Console::logInfo(const std::string& message) { log(LogLevel::Info, message)
 void Console::logWarning(const std::string& message) { log(LogLevel::Warning, message); }
 
 void Console::logError(const std::string& message) { log(LogLevel::Error, message); }
+
+void Console::logCritical(const std::string& message) { log(LogLevel::Critical, message); }
 
 void Console::render() {
     if (shouldCloseConsole()) {
@@ -49,7 +53,7 @@ void Console::render() {
                              ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
 
     if (ImGui::Begin("Console", &visible, flags)) {
-        const char* levels[] = {"Debug", "Info", "Warning", "Error"};
+        const char* levels[] = {"Trace", "Debug", "Info", "Warning", "Error", "Critical"};
         int currentLevel = static_cast<int>(filterLevel);
 
         ImGui::Text("Filter:");
@@ -152,6 +156,8 @@ bool Console::shouldCloseConsole() const {
 
 ImVec4 Console::getLevelColor(LogLevel level) const {
     switch (level) {
+        case LogLevel::Trace:
+            return ImVec4(0.4f, 0.4f, 0.4f, 1.0f);
         case LogLevel::Debug:
             return ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
         case LogLevel::Info:
@@ -160,6 +166,8 @@ ImVec4 Console::getLevelColor(LogLevel level) const {
             return ImVec4(1.0f, 0.8f, 0.0f, 1.0f);
         case LogLevel::Error:
             return ImVec4(1.0f, 0.3f, 0.3f, 1.0f);
+        case LogLevel::Critical:
+            return ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
         default:
             return ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
     }
@@ -167,6 +175,8 @@ ImVec4 Console::getLevelColor(LogLevel level) const {
 
 const char* Console::getLevelName(LogLevel level) const {
     switch (level) {
+        case LogLevel::Trace:
+            return "TRACE";
         case LogLevel::Debug:
             return "DEBUG";
         case LogLevel::Info:
@@ -175,6 +185,8 @@ const char* Console::getLevelName(LogLevel level) const {
             return "WARN";
         case LogLevel::Error:
             return "ERROR";
+        case LogLevel::Critical:
+            return "CRITICAL";
         default:
             return "UNKNOWN";
     }

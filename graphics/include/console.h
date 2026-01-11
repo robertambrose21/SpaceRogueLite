@@ -11,7 +11,7 @@
 
 namespace SpaceRogueLite {
 
-enum class LogLevel { Debug, Info, Warning, Error };
+enum class LogLevel { Trace, Debug, Info, Warning, Error, Critical };
 
 struct LogEntry {
     LogLevel level;
@@ -41,10 +41,12 @@ public:
     ~Console() = default;
 
     void log(LogLevel level, const std::string& message);
+    void logTrace(const std::string& message);
     void logDebug(const std::string& message);
     void logInfo(const std::string& message);
     void logWarning(const std::string& message);
     void logError(const std::string& message);
+    void logCritical(const std::string& message);
 
     void render();
 
@@ -65,7 +67,7 @@ private:
     bool justOpened = true;
     std::deque<LogEntry> entries;
     mutable std::mutex entriesMutex;
-    LogLevel filterLevel = LogLevel::Debug;
+    LogLevel filterLevel = LogLevel::Trace;
     bool autoScroll = true;
     bool scrollToBottom = false;
 
@@ -92,6 +94,8 @@ protected:
         LogLevel level;
         switch (msg.level) {
             case spdlog::level::trace:
+                level = LogLevel::Trace;
+                break;
             case spdlog::level::debug:
                 level = LogLevel::Debug;
                 break;
@@ -102,8 +106,10 @@ protected:
                 level = LogLevel::Warning;
                 break;
             case spdlog::level::err:
-            case spdlog::level::critical:
                 level = LogLevel::Error;
+                break;
+            case spdlog::level::critical:
+                level = LogLevel::Critical;
                 break;
             default:
                 level = LogLevel::Info;
