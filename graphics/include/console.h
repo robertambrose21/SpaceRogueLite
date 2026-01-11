@@ -20,13 +20,13 @@ struct LogEntry {
 };
 
 struct ConsoleInputWorker : InputHandler::InputWorker {
-    explicit ConsoleInputWorker(uint32_t workerId, bool& visible) {
+    explicit ConsoleInputWorker(uint32_t workerId, std::function<void()> toggleCallback) {
         id = workerId;
         name = "ConsoleToggle";
-        function = [&visible](const SDL_Event& event) {
+        function = [toggleCallback](const SDL_Event& event) {
             if (event.type == SDL_EVENT_KEY_DOWN && event.key.scancode == SDL_SCANCODE_GRAVE &&
                 !event.key.repeat) {
-                visible = !visible;
+                toggleCallback();
             }
         };
     }
@@ -62,6 +62,7 @@ public:
 
 private:
     bool visible = false;
+    bool justOpened = true;
     std::deque<LogEntry> entries;
     mutable std::mutex entriesMutex;
     LogLevel filterLevel = LogLevel::Debug;
@@ -73,6 +74,7 @@ private:
 
     ConsoleInputWorker worker;
 
+    bool shouldCloseConsole() const;
     ImVec4 getLevelColor(LogLevel level) const;
     const char* getLevelName(LogLevel level) const;
     std::string getCurrentTimestamp() const;

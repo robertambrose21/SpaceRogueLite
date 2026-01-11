@@ -5,7 +5,7 @@
 
 using namespace SpaceRogueLite;
 
-Console::Console() : worker(CONSOLE_WORKER_ID, visible) {}
+Console::Console() : worker(CONSOLE_WORKER_ID, [this]() { toggle(); }) {}
 
 void Console::log(LogLevel level, const std::string& message) {
     std::lock_guard<std::mutex> lock(entriesMutex);
@@ -31,6 +31,10 @@ void Console::logWarning(const std::string& message) { log(LogLevel::Warning, me
 void Console::logError(const std::string& message) { log(LogLevel::Error, message); }
 
 void Console::render() {
+    if (shouldCloseConsole()) {
+        toggle();
+    }
+
     if (!visible) {
         return;
     }
@@ -101,7 +105,10 @@ void Console::render() {
         ImGui::SetNextItemWidth(-1);
         ImGuiInputTextFlags inputFlags =
             ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll;
-        ImGui::SetKeyboardFocusHere();
+        if (justOpened) {
+            ImGui::SetKeyboardFocusHere();
+            justOpened = false;
+        }
         if (ImGui::InputText("##ConsoleInput", inputBuffer, sizeof(inputBuffer), inputFlags)) {
             if (inputBuffer[0] != '\0') {
                 std::string command(inputBuffer);
@@ -118,7 +125,12 @@ void Console::render() {
     ImGui::End();
 }
 
-void Console::toggle() { visible = !visible; }
+void Console::toggle() {
+    visible = !visible;
+    if (visible) {
+        justOpened = true;
+    }
+}
 
 bool Console::isVisible() const { return visible; }
 
@@ -135,6 +147,11 @@ void Console::clear() {
 
 void Console::setCommandCallback(std::function<void(const std::string&)> callback) {
     onCommand = std::move(callback);
+}
+
+bool Console::shouldCloseConsole() const {
+    return !justOpened && ImGui::GetIO().WantCaptureKeyboard &&
+           ImGui::IsKeyPressed(ImGuiKey_GraveAccent, false);
 }
 
 ImVec4 Console::getLevelColor(LogLevel level) const {
