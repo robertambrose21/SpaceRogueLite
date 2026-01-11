@@ -16,6 +16,8 @@ namespace SpaceRogueLite {
  * Format: /send <MessageType> [args...]
  */
 struct SendCommand : Command<SendCommand> {
+    static constexpr const char* name() { return "/send"; }
+
     MessageType messageType;
 
     /**
@@ -23,7 +25,7 @@ struct SendCommand : Command<SendCommand> {
      * tokens[0] = "/send", tokens[1] = message type name, tokens[2+] = message args
      */
     static std::optional<SendCommand> parse(const std::vector<std::string>& tokens) {
-        if (tokens.empty() || tokens[0] != "/send") {
+        if (tokens.empty() || tokens[0] != name()) {
             return std::nullopt;
         }
 

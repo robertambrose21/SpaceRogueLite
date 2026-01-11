@@ -57,6 +57,26 @@ public:
 using ParsedCommand = std::variant<SendCommand>;
 
 /**
+ * Try to parse command by iterating through all command types in ParsedCommand variant
+ */
+template <size_t I = 0>
+std::optional<ParsedCommand> tryParseCommand(const std::string& cmdName,
+                                              const std::vector<std::string>& tokens) {
+    if constexpr (I < std::variant_size_v<ParsedCommand>) {
+        using CmdType = std::variant_alternative_t<I, ParsedCommand>;
+        if (cmdName == CmdType::name()) {
+            auto cmd = CmdType::parse(tokens);
+            if (cmd.has_value()) {
+                return cmd.value();
+            }
+            return std::nullopt;
+        }
+        return tryParseCommand<I + 1>(cmdName, tokens);
+    }
+    return std::nullopt;
+}
+
+/**
  * Parse a command string and dispatch to appropriate command parser
  * @param input The full command string (e.g., "/send PING")
  * @return Parsed command variant if valid, std::nullopt otherwise
@@ -67,18 +87,11 @@ inline std::optional<ParsedCommand> parseCommand(const std::string& input) {
         return std::nullopt;
     }
 
-    const std::string& commandName = tokens[0];
-
-    if (commandName == "/send") {
-        auto cmd = SendCommand::parse(tokens);
-        if (cmd.has_value()) {
-            return cmd.value();
-        }
-        return std::nullopt;
+    auto result = tryParseCommand(tokens[0], tokens);
+    if (!result.has_value()) {
+        spdlog::warn("Unknown command '{}'", tokens[0]);
     }
-
-    spdlog::warn("Unknown command '{}'", commandName);
-    return std::nullopt;
+    return result;
 }
 
 }  // namespace SpaceRogueLite
