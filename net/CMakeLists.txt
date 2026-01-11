@@ -4,6 +4,7 @@ project(net LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(yojimbo REQUIRED)
+find_package(core REQUIRED)
 
 add_library(net INTERFACE)
 
@@ -13,11 +14,15 @@ target_include_directories(net
         $<INSTALL_INTERFACE:include>
 )
 
+target_link_libraries(net INTERFACE core)
+
 add_library(net_dummy OBJECT dummy.cpp)
+set_target_properties(net_dummy PROPERTIES CXX_STANDARD 20)
 
 target_include_directories(net_dummy PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${yojimbo_INCLUDE_DIRS}
+    ${core_INCLUDE_DIRS}
 )
 
 install(DIRECTORY include/ DESTINATION include)

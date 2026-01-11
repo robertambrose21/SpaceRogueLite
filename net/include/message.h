@@ -16,7 +16,7 @@ public:
 
     virtual constexpr const char* getName() const = 0;
     virtual std::string toString(void) const = 0;
-    virtual std::string getCommandHelpText(void) const = 0;
+    virtual std::string getCommandHelpText(void) const { return "Unimplemented"; }
 
     /**
      * @brief Parse arguments to populate this message's data fields.
@@ -36,7 +36,8 @@ public:
     bool parse(Args&&... args) {
         if constexpr (sizeof...(args) > 0) {
             spdlog::critical(
-                "Message '{}' called default parse() with {} argument(s) but has not overridden parse() for these "
+                "Message '{}' called default parse() with {} argument(s) but has not overridden "
+                "parse() for these "
                 "types. "
                 "Please implement parse() in your message class.",
                 getName(), sizeof...(args));
@@ -64,7 +65,10 @@ public:
      *
      * @param args Vector of string arguments parsed from the command line
      */
-    virtual bool parseFromCommand(const std::vector<std::string>& args) = 0;
+    virtual bool parseFromCommand(const std::vector<std::string>& args) {
+        spdlog::warn("Message '{}' does not support parsing from command", getName());
+        return false;
+    }
 
     MessageChannel getMessageChannel() const noexcept { return channel; }
 

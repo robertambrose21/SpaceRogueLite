@@ -6,6 +6,12 @@ namespace SpaceRogueLite {
 
 enum class MessageChannel { RELIABLE, UNRELIABLE, COUNT };
 
+enum class MessageDirection {
+    CLIENT_TO_SERVER,  // Only sent by client, handled by server
+    SERVER_TO_CLIENT,  // Only sent by server, handled by client
+    BIDIRECTIONAL      // Can be sent/received by both
+};
+
 constexpr const char* MessageChannelToString(MessageChannel channel) {
     switch (channel) {
         case MessageChannel::RELIABLE:

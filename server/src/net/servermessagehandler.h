@@ -64,10 +64,12 @@ private:
 };
 
 template <>
-inline void ServerMessageHandler::handleMessage<PingMessage>(int clientIndex, PingMessage* message) {}
+inline void ServerMessageHandler::handleMessage<PingMessage>(int clientIndex,
+                                                             PingMessage* message) {}
 
 template <>
-inline void ServerMessageHandler::handleMessage<SpawnActorMessage>(int clientIndex, SpawnActorMessage* message) {
+inline void ServerMessageHandler::handleMessage<SpawnActorMessage>(int clientIndex,
+                                                                   SpawnActorMessage* message) {
     dispatcher.trigger<ActorSpawnEvent>({std::string(message->actorName)});
 }
 
@@ -90,19 +92,30 @@ constexpr auto makeHandler() {
 }
 
 /**
+ * Compile-time check for whether server should handle a message direction
+ */
+template <MessageDirection Dir>
+constexpr bool serverShouldHandle() {
+    return Dir == MessageDirection::BIDIRECTIONAL || Dir == MessageDirection::CLIENT_TO_SERVER;
+}
+
+/**
  * Initializes the handler registry with all message handlers
  *
  * This constexpr function is evaluated at compile time to create the registry.
  * Uses MESSAGE_LIST from messagefactory.h to automatically register all message types.
+ * Only registers handlers for messages the server should handle based on direction.
  *
  * @return Initialized HandlerRegistry
  */
 constexpr auto initializeHandlerRegistry() {
     HandlerRegistry<ServerMessageHandler> registry;
 
-    // Generate handler registrations from MESSAGE_LIST
-#define MESSAGE_HANDLER_REGISTER(name, messageClass) \
-    registry.registerHandler(MessageType::name, makeHandler<messageClass>());
+    // Generate handler registrations from MESSAGE_LIST, filtered by direction
+#define MESSAGE_HANDLER_REGISTER(name, messageClass, direction)                   \
+    if constexpr (serverShouldHandle<MessageDirection::direction>()) {            \
+        registry.registerHandler(MessageType::name, makeHandler<messageClass>()); \
+    }
     MESSAGE_LIST(MESSAGE_HANDLER_REGISTER)
 #undef MESSAGE_HANDLER_REGISTER
 

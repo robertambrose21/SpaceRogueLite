@@ -2,7 +2,7 @@
 
 #include <spdlog/spdlog.h>
 #include <yojimbo.h>
-#include <iostream>
+#include <functional>
 #include <map>
 
 #include "connectionconfig.h"
@@ -34,7 +34,8 @@ private:
 
 class Server {
 public:
-    explicit Server(const yojimbo::Address& address, int maxConnections, MessageHandler& messageHandler);
+    explicit Server(const yojimbo::Address& address, int maxConnections,
+                    MessageHandler& messageHandler);
     ~Server();
 
     void start(void);
@@ -50,6 +51,9 @@ public:
     void onClientConnected(int clientIndex);
     void onClientDisconnected(int clientIndex);
 
+    void setOnClientConnectedCallback(std::function<void(int)> callback);
+    void setOnClientDisconnectedCallback(std::function<void(int)> callback);
+
 private:
     enum ConnectionState { CONNECTED = 0, RECONNECTED, DISCONNECTED };
 
@@ -61,6 +65,9 @@ private:
 
     int maxConnections;
     std::map<uint64_t, ConnectionState> clientIds;
+
+    std::function<void(int)> onClientConnectedCallback{};
+    std::function<void(int)> onClientDisconnectedCallback{};
 
     MessageHandler& messageHandler;
 

@@ -22,11 +22,15 @@ public:
 
     void run(void);
 
+    virtual void onLoad(void) = 0;
+    virtual void onUnload(void) = 0;
+
     void attachWorker(const Worker& worker);
     void detachWorker(uint32_t id);
     const std::map<uint32_t, Worker>& getWorkers(void) const;
 
 private:
+    bool isLoaded;
     std::map<uint32_t, Worker> workers;
 
     void loop(void);

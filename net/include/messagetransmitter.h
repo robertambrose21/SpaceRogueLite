@@ -31,7 +31,7 @@ public:
         // Cast to correct message type and call parse with proper type information
         switch (type) {
             // clang-format off
-#define PARSE_MESSAGE(name, messageClass)                                                      \
+#define PARSE_MESSAGE(name, messageClass, direction)                                           \
             case MessageType::name:                                                            \
                 parseAndSend<messageClass>(message, clientIndex, std::forward<Args>(args)...); \
                 return;

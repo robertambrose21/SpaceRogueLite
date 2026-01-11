@@ -8,7 +8,8 @@ using namespace SpaceRogueLite;
 Server::Server(const yojimbo::Address& address, int maxConnections, MessageHandler& messageHandler)
     : adapter(this),
       address(address),
-      server(yojimbo::GetDefaultAllocator(), SERVER_DEFAULT_PRIVATE_KEY, address, ConnectionConfig(), adapter, 0.0),
+      server(yojimbo::GetDefaultAllocator(), SERVER_DEFAULT_PRIVATE_KEY, address,
+             ConnectionConfig(), adapter, 0.0),
       maxConnections(maxConnections),
       messageHandler(messageHandler) {}
 
@@ -22,7 +23,8 @@ void Server::start(void) {
     server.Start(maxConnections);
 
     if (!server.IsRunning()) {
-        throw std::runtime_error("Could not start server at port " + std::to_string(address.GetPort()));
+        throw std::runtime_error("Could not start server at port " +
+                                 std::to_string(address.GetPort()));
     }
 
     char buffer[256];
@@ -54,9 +56,9 @@ void Server::update(int64_t timeSinceLastFrame) {
 
     processMessages();
 
-    // TODO: Send a ping every second or so: https://github.com/networkprotocol/yojimbo/issues/138 and
-    // https://github.com/networkprotocol/yojimbo/issues/146 Packets are intended to be sent pretty regulary - we can
-    // remove this when we're sending packets more regularly
+    // TODO: Send a ping every second or so: https://github.com/networkprotocol/yojimbo/issues/138
+    // and https://github.com/networkprotocol/yojimbo/issues/146 Packets are intended to be sent
+    // pretty regulary - we can remove this when we're sending packets more regularly
     if (server.HasMessagesToSend(0, (int) MessageChannel::RELIABLE) ||
         server.HasMessagesToSend(0, (int) MessageChannel::UNRELIABLE)) {
         server.SendPackets();
@@ -74,8 +76,10 @@ void Server::processMessages(void) {
             while (yojimboMessage != NULL) {
                 auto message = dynamic_cast<Message*>(yojimboMessage);
                 if (!message) {
-                    spdlog::critical("Invalid dynamic_cast for yojimbo::Message, type is: '{}'. Check message factory",
-                                     yojimboMessage->GetType());
+                    spdlog::critical(
+                        "Invalid dynamic_cast for yojimbo::Message, type is: '{}'. Check message "
+                        "factory",
+                        yojimboMessage->GetType());
                     continue;
                 }
 
@@ -101,13 +105,29 @@ void Server::onClientConnected(int clientIndex) {
         clientIds[clientId] = CONNECTED;
         spdlog::info("Client {}:[{}] connected", clientIndex, clientId);
     }
+
+    if (onClientConnectedCallback) {
+        onClientConnectedCallback(clientIndex);
+    }
 }
 
 void Server::onClientDisconnected(int clientIndex) {
     uint64_t clientId = server.GetClientId(clientIndex);
     clientIds[clientId] = DISCONNECTED;
 
+    if (onClientDisconnectedCallback) {
+        onClientDisconnectedCallback(clientIndex);
+    }
+
     spdlog::info("Client {}:[{}] disconnected", clientIndex, clientId);
+}
+
+void Server::setOnClientConnectedCallback(std::function<void(int)> callback) {
+    onClientConnectedCallback = callback;
+}
+
+void Server::setOnClientDisconnectedCallback(std::function<void(int)> callback) {
+    onClientDisconnectedCallback = callback;
 }
 
 // ---------------------------------------------------------------
