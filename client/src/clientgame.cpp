@@ -74,17 +74,17 @@ void ClientGame::onLoad(void) {
     registry.emplace<SpaceRogueLite::Renderable>(testEntity, glm::vec2(32.0f, 32.0f),
                                                  glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), "SpaceWorm");
 
-    attachWorker({1, "ClientUpdateLoop", [this](int64_t timeSinceLastFrame, bool& quit) {
-                      client->update(timeSinceLastFrame);
-                  }});
+    attachWorker("ClientUpdateLoop", [this](int64_t timeSinceLastFrame, bool& quit) {
+        client->update(timeSinceLastFrame);
+    });
 
-    attachWorker({2, "RenderLoop", [this](int64_t timeSinceLastFrame, bool& quit) {
-                      window->update(timeSinceLastFrame, quit);
-                  }});
+    attachWorker("RenderLoop", [this](int64_t timeSinceLastFrame, bool& quit) {
+        window->update(timeSinceLastFrame, quit);
+    });
 
-    attachWorker({4, "CameraMovement", [this](int64_t timeSinceLastFrame, bool& quit) {
-                      cameraInput->update(timeSinceLastFrame, quit);
-                  }});
+    attachWorker("CameraMovement", [this](int64_t timeSinceLastFrame, bool& quit) {
+        cameraInput->update(timeSinceLastFrame, quit);
+    });
 
     client->connect();
 

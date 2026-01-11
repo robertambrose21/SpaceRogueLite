@@ -32,14 +32,11 @@ void Game::loop(void) {
     }
 }
 
-void Game::attachWorker(const Worker& worker) {
-    if (workers.contains(worker.id)) {
-        spdlog::warn("Worker {} with id {} already attached, skipping", worker.name, worker.id);
-        return;
-    }
-
-    spdlog::info("Attaching worker {} with id {}", worker.name, worker.id);
-    workers[worker.id] = worker;
+uint32_t Game::attachWorker(const std::string& name, std::function<void(int64_t, bool&)> function) {
+    uint32_t id = nextWorkerId++;
+    spdlog::info("Attaching worker {} with id {}", name, id);
+    workers[id] = Worker{id, name, function};
+    return id;
 }
 
 void Game::detachWorker(uint32_t id) {

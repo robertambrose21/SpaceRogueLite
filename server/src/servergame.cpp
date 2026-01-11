@@ -38,9 +38,9 @@ void ServerGame::onLoad(void) {
 
     server->setOnClientConnectedCallback([this](int clientIndex) { sendMapToClient(clientIndex); });
 
-    attachWorker({1, "ServerUpdateLoop", [this](int64_t timeSinceLastFrame, bool& quit) {
-                      server->update(timeSinceLastFrame);
-                  }});
+    attachWorker("ServerUpdateLoop", [this](int64_t timeSinceLastFrame, bool& quit) {
+        server->update(timeSinceLastFrame);
+    });
 
     server->start();
 
