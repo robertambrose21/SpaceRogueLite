@@ -13,16 +13,16 @@ namespace SpaceRogueLite {
 
 /**
  * Command for sending network messages
- * Format: /send <MessageType> [args...]
+ * Format: send <MessageType> [args...]
  */
 struct SendCommand : Command<SendCommand> {
-    static constexpr const char* name() { return "/send"; }
+    static constexpr const char* name() { return "send"; }
 
     MessageType messageType;
 
     /**
      * Parse tokens into a SendCommand
-     * tokens[0] = "/send", tokens[1] = message type name, tokens[2+] = message args
+     * tokens[0] = "send", tokens[1] = message type name, tokens[2+] = message args
      */
     static std::optional<SendCommand> parse(const std::vector<std::string>& tokens) {
         if (tokens.empty() || tokens[0] != name()) {
@@ -30,7 +30,7 @@ struct SendCommand : Command<SendCommand> {
         }
 
         if (tokens.size() < 2) {
-            spdlog::warn("Usage: /send <MessageType> [args...]");
+            spdlog::warn("Usage: send <MessageType> [args...]");
             printAvailableMessages();
             return std::nullopt;
         }

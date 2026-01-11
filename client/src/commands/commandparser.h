@@ -12,7 +12,7 @@ namespace SpaceRogueLite {
 
 /**
  * Tokenizer utility - splits command string, respecting quotes
- * Returns tokens with command name as first element, e.g. ["/send", "PING"]
+ * Returns tokens with command name as first element, e.g. ["send", "PING"]
  */
 class CommandTokenizer {
 public:
@@ -78,7 +78,7 @@ std::optional<ParsedCommand> tryParseCommand(const std::string& cmdName,
 
 /**
  * Parse a command string and dispatch to appropriate command parser
- * @param input The full command string (e.g., "/send PING")
+ * @param input The full command string (e.g., "send PING")
  * @return Parsed command variant if valid, std::nullopt otherwise
  */
 inline std::optional<ParsedCommand> parseCommand(const std::string& input) {
