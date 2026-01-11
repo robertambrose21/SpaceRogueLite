@@ -14,8 +14,8 @@ namespace SpaceRogueLite {
 // ============================================================================
 // Add new messages here
 // Format: X(ENUM_NAME, MessageClass, Direction)
-#define MESSAGE_LIST(X)  \
-    X(PING, PingMessage, BIDIRECTIONAL) \
+#define MESSAGE_LIST(X)                              \
+    X(PING, PingMessage, BIDIRECTIONAL)              \
     X(SPAWN_ACTOR, SpawnActorMessage, BIDIRECTIONAL) \
     X(LOAD_MAP_CHUNK, LoadMapChunkMessage, SERVER_TO_CLIENT)
 
@@ -126,6 +126,8 @@ public:
     };
 
     MapChunk chunk;
+    uint16_t sequenceNumber;
+    uint16_t numSequences;
 
     LoadMapChunkMessage() : Message(MessageChannel::RELIABLE) {}
 
@@ -158,6 +160,8 @@ public:
         serialize_bits(stream, chunk.height, 16);
         serialize_bits(stream, chunk.posX, 16);
         serialize_bits(stream, chunk.posY, 16);
+        serialize_bits(stream, sequenceNumber, 16);
+        serialize_bits(stream, numSequences, 16);
 
         for (uint16_t x = 0; x < chunk.width; x++) {
             for (uint16_t y = 0; y < chunk.height; y++) {

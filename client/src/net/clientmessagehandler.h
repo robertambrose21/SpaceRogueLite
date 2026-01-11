@@ -90,7 +90,8 @@ inline void ClientMessageHandler::handleMessage<LoadMapChunkMessage>(LoadMapChun
         }
     }
 
-    spdlog::debug("Loaded map chunk at ({}, {})", message->chunk.posX, message->chunk.posY);
+    spdlog::debug("Loaded map chunk {}/{} at ({}, {})", message->sequenceNumber,
+                  message->numSequences, message->chunk.posX, message->chunk.posY);
 }
 
 /**
@@ -132,8 +133,8 @@ constexpr auto initializeHandlerRegistry() {
     HandlerRegistry<ClientMessageHandler> registry;
 
     // Generate handler registrations from MESSAGE_LIST, filtered by direction
-#define MESSAGE_HANDLER_REGISTER(name, messageClass, direction)                    \
-    if constexpr (clientShouldHandle<MessageDirection::direction>()) {             \
+#define MESSAGE_HANDLER_REGISTER(name, messageClass, direction)                   \
+    if constexpr (clientShouldHandle<MessageDirection::direction>()) {            \
         registry.registerHandler(MessageType::name, makeHandler<messageClass>()); \
     }
     MESSAGE_LIST(MESSAGE_HANDLER_REGISTER)

@@ -69,6 +69,8 @@ void ServerGame::sendMapToClient(int clientIndex) {
     auto& grid = entt::locator<SpaceRogueLite::Grid>::value();
 
     constexpr int CHUNK_SIZE = 16;
+    uint16_t sequenceNumber = 0;
+    uint16_t numSequences = (grid.getWidth() / CHUNK_SIZE) * (grid.getHeight() / CHUNK_SIZE);
 
     for (int chunkY = 0; chunkY < grid.getHeight(); chunkY += CHUNK_SIZE) {
         for (int chunkX = 0; chunkX < grid.getWidth(); chunkX += CHUNK_SIZE) {
@@ -79,6 +81,8 @@ void ServerGame::sendMapToClient(int clientIndex) {
             msg->chunk.posY = chunkY;
             msg->chunk.width = std::min(CHUNK_SIZE, grid.getWidth() - chunkX);
             msg->chunk.height = std::min(CHUNK_SIZE, grid.getHeight() - chunkY);
+            msg->sequenceNumber = ++sequenceNumber;
+            msg->numSequences = numSequences;
 
             for (int y = 0; y < msg->chunk.height; y++) {
                 for (int x = 0; x < msg->chunk.width; x++) {
