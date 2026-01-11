@@ -17,6 +17,7 @@ target_include_directories(net
 target_link_libraries(net INTERFACE core)
 
 add_library(net_dummy OBJECT dummy.cpp)
+set_target_properties(net_dummy PROPERTIES CXX_STANDARD 20)
 
 target_include_directories(net_dummy PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include

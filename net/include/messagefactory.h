@@ -1,5 +1,7 @@
 #pragma once
 
+#include <format>
+
 #include <yojimbo.h>
 
 #include "tileid.h"
@@ -148,8 +150,8 @@ public:
             data += "\n";
         }
 
-        return std::string(getName()) + ": (" + std::to_string(chunk.posX) + ", " +
-               std::to_string(chunk.posY) + ")\n" + data;
+        return std::format("{}: ({}, {}) - {}/{}", getName(), chunk.posX, chunk.posY,
+                           sequenceNumber, numSequences);
     }
 
     std::string getCommandHelpText(void) const override { return "Loads a map chunk"; }
