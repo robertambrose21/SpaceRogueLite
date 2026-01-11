@@ -101,6 +101,7 @@ void Console::render() {
         ImGui::SetNextItemWidth(-1);
         ImGuiInputTextFlags inputFlags =
             ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll;
+        ImGui::SetKeyboardFocusHere();
         if (ImGui::InputText("##ConsoleInput", inputBuffer, sizeof(inputBuffer), inputFlags)) {
             if (inputBuffer[0] != '\0') {
                 std::string command(inputBuffer);
