@@ -69,15 +69,16 @@ void Console::render() {
 
         ImGui::Separator();
 
-        float footerHeight =
-            ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing() * 2;
+        float footerHeight = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
         ImGui::BeginChild("LogScrollRegion", ImVec2(0, -footerHeight), false,
                           ImGuiWindowFlags_HorizontalScrollbar);
 
         {
             std::lock_guard<std::mutex> lock(entriesMutex);
             for (const auto& entry : entries) {
-                if (static_cast<int>(entry.level) < static_cast<int>(filterLevel)) continue;
+                if (static_cast<int>(entry.level) < static_cast<int>(filterLevel)) {
+                    continue;
+                }
 
                 ImVec4 color = getLevelColor(entry.level);
                 ImGui::PushStyleColor(ImGuiCol_Text, color);
@@ -96,11 +97,6 @@ void Console::render() {
         scrollToBottom = false;
 
         ImGui::EndChild();
-
-        {
-            std::lock_guard<std::mutex> lock(entriesMutex);
-            ImGui::Text("%zu entries", entries.size());
-        }
 
         ImGui::SetNextItemWidth(-1);
         ImGuiInputTextFlags inputFlags =
