@@ -46,9 +46,9 @@ void ClientGame::onLoad(void) {
     spdlog::default_logger()->sinks().push_back(consoleSink);
 
     window->getConsole()->setCommandCallback([this](const std::string& command) {
-        auto parsed = SpaceRogueLite::CommandParser::parse(command);
+        auto parsed = SpaceRogueLite::parseCommand(command);
         if (parsed.has_value()) {
-            messageTransmitter->sendMessageFromCommand(parsed->messageType, parsed->arguments);
+            std::visit(CommandVisitor{messageTransmitter.get()}, *parsed);
         }
     });
 

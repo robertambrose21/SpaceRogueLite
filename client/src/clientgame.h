@@ -7,6 +7,7 @@
 #include "net/client.h"
 #include "net/clientmessagehandler.h"
 #include "net/clientmessagetransmitter.h"
+#include "commands/commandparser.h"
 
 class ClientGame : public SpaceRogueLite::Game {
 public:
@@ -17,6 +18,14 @@ public:
     void onUnload(void) override;
 
 private:
+    struct CommandVisitor {
+        SpaceRogueLite::ClientMessageTransmitter* transmitter;
+
+        void operator()(const SpaceRogueLite::SendCommand& cmd) {
+            transmitter->sendMessageFromCommand(cmd.messageType, cmd.arguments);
+        }
+    };
+
     entt::registry registry;
     entt::dispatcher dispatcher;
 

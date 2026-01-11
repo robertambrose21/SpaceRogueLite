@@ -1,75 +1,21 @@
 #pragma once
 
 #include <spdlog/spdlog.h>
-#include <algorithm>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
-#include "messagefactory.h"
+#include "sendcommand.h"
 
 namespace SpaceRogueLite {
 
 /**
- * Parsed command structure
+ * Tokenizer utility - splits command string, respecting quotes
+ * Returns tokens with command name as first element, e.g. ["/send", "PING"]
  */
-struct ParsedCommand {
-    MessageType messageType;
-    std::vector<std::string> arguments;
-};
-
-/**
- * Parser for CLI commands
- * Supports format: /send MessageTypeName [args...]
- * Arguments can be quoted: /send spawn_actor 'Enemy5'
- */
-class CommandParser {
+class CommandTokenizer {
 public:
-    /**
-     * Parse a command string
-     * @param commandString The full command string (e.g., "/send spawn_actor 'Enemy5'")
-     * @return Parsed command if valid, std::nullopt otherwise
-     */
-    static std::optional<ParsedCommand> parse(const std::string& commandString) {
-        if (commandString.empty()) {
-            return std::nullopt;
-        }
-
-        // Tokenize the command string
-        std::vector<std::string> tokens = tokenize(commandString);
-        if (tokens.empty()) {
-            return std::nullopt;
-        }
-
-        // Check for /send command
-        if (tokens[0] != "/send") {
-            spdlog::warn("Unknown command '{}'. Only '/send' is currently supported.", tokens[0]);
-            return std::nullopt;
-        }
-
-        if (tokens.size() < 2) {
-            spdlog::warn("Usage: /send <MessageType> [args...]");
-            printAvailableMessages();
-            return std::nullopt;
-        }
-
-        std::string messageTypeName = tokens[1];
-        auto messageType = parseMessageType(messageTypeName);
-        if (!messageType.has_value()) {
-            spdlog::warn("Unknown message type '{}'", messageTypeName);
-            printAvailableMessages();
-            return std::nullopt;
-        }
-
-        std::vector<std::string> arguments(tokens.begin() + 2, tokens.end());
-
-        return ParsedCommand{messageType.value(), arguments};
-    }
-
-private:
-    /**
-     * Tokenize a command string, respecting quoted strings
-     */
     static std::vector<std::string> tokenize(const std::string& str) {
         std::vector<std::string> tokens;
         std::string currentToken;
@@ -80,73 +26,59 @@ private:
             char c = str[i];
 
             if (!inQuotes && (c == '\'' || c == '"')) {
-                // Start of quoted string
                 inQuotes = true;
                 quoteChar = c;
             } else if (inQuotes && c == quoteChar) {
-                // End of quoted string
                 inQuotes = false;
                 quoteChar = '\0';
-                // Don't add the quote character, but do push the token if non-empty
                 if (!currentToken.empty()) {
                     tokens.push_back(currentToken);
                     currentToken.clear();
                 }
             } else if (!inQuotes && std::isspace(c)) {
-                // Whitespace outside quotes - token separator
                 if (!currentToken.empty()) {
                     tokens.push_back(currentToken);
                     currentToken.clear();
                 }
             } else {
-                // Regular character
                 currentToken += c;
             }
         }
 
-        // Add final token if any
         if (!currentToken.empty()) {
             tokens.push_back(currentToken);
         }
 
         return tokens;
     }
+};
 
-    /**
-     * Parse message type name to enum
-     * Parses enum names like "PING" or "SPAWN_ACTOR"
-     */
-    static std::optional<MessageType> parseMessageType(const std::string& name) {
-        std::string upperName = name;
-        std::transform(upperName.begin(), upperName.end(), upperName.begin(),
-                       [](unsigned char c) { return std::toupper(c); });
+// Variant of all command types - add new commands here
+using ParsedCommand = std::variant<SendCommand>;
 
-        // clang-format off
-#define MESSAGE_TYPE_MATCH(enumName, messageClass, direction)                              \
-        if (upperName == #enumName && std::string(#direction) != "SERVER_TO_CLIENT") {     \
-            return MessageType::enumName;                                                  \
-        }
-        MESSAGE_LIST(MESSAGE_TYPE_MATCH)
-#undef MESSAGE_TYPE_MATCH
-        // clang-format on
-
+/**
+ * Parse a command string and dispatch to appropriate command parser
+ * @param input The full command string (e.g., "/send PING")
+ * @return Parsed command variant if valid, std::nullopt otherwise
+ */
+inline std::optional<ParsedCommand> parseCommand(const std::string& input) {
+    auto tokens = CommandTokenizer::tokenize(input);
+    if (tokens.empty()) {
         return std::nullopt;
     }
 
-    /**
-     * Print available message types
-     */
-    static void printAvailableMessages() {
-        spdlog::info("Available message types:");
-        // clang-format off
-#define PRINT_MESSAGE_HELP(enumName, messageClass, direction)                    \
-        if (std::string(#direction) != "SERVER_TO_CLIENT") {                     \
-            spdlog::info("  - {}", #enumName);                                   \
+    const std::string& commandName = tokens[0];
+
+    if (commandName == "/send") {
+        auto cmd = SendCommand::parse(tokens);
+        if (cmd.has_value()) {
+            return cmd.value();
         }
-        MESSAGE_LIST(PRINT_MESSAGE_HELP)
-#undef PRINT_MESSAGE_HELP
-        // clang-format on
+        return std::nullopt;
     }
-};
+
+    spdlog::warn("Unknown command '{}'", commandName);
+    return std::nullopt;
+}
 
 }  // namespace SpaceRogueLite
